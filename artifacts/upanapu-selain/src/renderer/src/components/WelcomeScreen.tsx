@@ -65,7 +65,7 @@ export default function WelcomeScreen({ settings, onDone }: WelcomeScreenProps) 
           marginBottom: 36,
         }}>
           {/* Tutor icon */}
-          <div style={{
+          <div aria-hidden="true" style={{
             width: 64,
             height: 64,
             borderRadius: '50%',
@@ -87,7 +87,7 @@ export default function WelcomeScreen({ settings, onDone }: WelcomeScreenProps) 
             marginBottom: 16,
             lineHeight: 1.3,
           }}>
-            Tervetuloa Upa'n Apu -selaimeen!
+            Tervetuloa Upa'n&nbsp;Apu -selaimeen!
           </h1>
 
           <p style={{
@@ -133,6 +133,7 @@ export default function WelcomeScreen({ settings, onDone }: WelcomeScreenProps) 
           <button
             onClick={() => handleChoice(true)}
             disabled={saving}
+            aria-pressed={chosen === true}
             style={{
               flex: 1,
               maxWidth: 240,
@@ -145,7 +146,7 @@ export default function WelcomeScreen({ settings, onDone }: WelcomeScreenProps) 
               fontWeight: 800,
               cursor: saving ? 'wait' : 'pointer',
               fontFamily: 'inherit',
-              transition: 'all 0.15s',
+              transition: 'background 0.15s, border-color 0.15s',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -158,7 +159,7 @@ export default function WelcomeScreen({ settings, onDone }: WelcomeScreenProps) 
               if (!saving && chosen !== true) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
             }}
           >
-            <span style={{ fontSize: 36 }}>🛡️</span>
+            <span aria-hidden="true" style={{ fontSize: 36 }}>🛡️</span>
             Kyllä, estä ostokset
             <span style={{ fontSize: 14, fontWeight: 400, color: '#A8C0CC' }}>Varoitus maksu­sivuilla</span>
           </button>
@@ -166,6 +167,7 @@ export default function WelcomeScreen({ settings, onDone }: WelcomeScreenProps) 
           <button
             onClick={() => handleChoice(false)}
             disabled={saving}
+            aria-pressed={chosen === false}
             style={{
               flex: 1,
               maxWidth: 240,
@@ -178,7 +180,7 @@ export default function WelcomeScreen({ settings, onDone }: WelcomeScreenProps) 
               fontWeight: 800,
               cursor: saving ? 'wait' : 'pointer',
               fontFamily: 'inherit',
-              transition: 'all 0.15s',
+              transition: 'background 0.15s, border-color 0.15s',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -191,7 +193,7 @@ export default function WelcomeScreen({ settings, onDone }: WelcomeScreenProps) 
               if (!saving && chosen !== false) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
             }}
           >
-            <span style={{ fontSize: 36 }}>🌐</span>
+            <span aria-hidden="true" style={{ fontSize: 36 }}>🌐</span>
             Ei, salli ostokset
             <span style={{ fontSize: 14, fontWeight: 400, color: '#A8C0CC' }}>Selaan vapaasti</span>
           </button>

@@ -42,7 +42,7 @@ body {
 button {
   cursor: pointer;
   border: none;
-  outline: none;
+  touch-action: manipulation;
 }
 
 button:focus-visible {
@@ -56,11 +56,19 @@ input:focus {
 }
 
 .tutor-hint {
-  font-size: 11px;
+  font-size: 13px;
   color: #FFD700;
   font-weight: 500;
   text-align: center;
   line-height: 1.2;
   margin-top: 2px;
   white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

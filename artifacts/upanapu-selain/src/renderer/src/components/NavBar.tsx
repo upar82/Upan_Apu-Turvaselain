@@ -29,7 +29,7 @@ function NavButton({ onClick, disabled, title, tutorHint, tutorMode, icon, 'aria
         disabled={disabled}
         title={title}
         aria-label={ariaLabel}
-        className="flex items-center justify-center rounded-lg transition-all duration-150"
+        className="flex items-center justify-center rounded-lg"
         style={{
           width: 52,
           height: 52,
@@ -38,6 +38,7 @@ function NavButton({ onClick, disabled, title, tutorHint, tutorMode, icon, 'aria
           cursor: disabled ? 'not-allowed' : 'pointer',
           fontSize: 22,
           borderRadius: 10,
+          transition: 'background 0.15s',
         }}
         onMouseEnter={e => {
           if (!disabled) {
@@ -62,7 +63,6 @@ function NavButton({ onClick, disabled, title, tutorHint, tutorMode, icon, 'aria
 function TutorBubble({ message, onClose }: { message: string; onClose: () => void }) {
   const isPayment = message.includes('maksu') || message.includes('ostossivulta')
   const borderColor = isPayment ? '#FFD700' : '#FF6B35'
-  const bgColor = isPayment ? 'rgba(255,215,0,0.12)' : 'rgba(255,107,53,0.12)'
   const emoji = isPayment ? '🛡️' : '⚠️'
 
   return (
@@ -88,7 +88,7 @@ function TutorBubble({ message, onClose }: { message: string; onClose: () => voi
       }}
     >
       {/* Upward pointing triangle (speech bubble tail) */}
-      <div style={{
+      <div aria-hidden="true" style={{
         position: 'absolute',
         top: -11,
         left: '50%',
@@ -101,7 +101,7 @@ function TutorBubble({ message, onClose }: { message: string; onClose: () => voi
       }} />
 
       {/* Tutor avatar */}
-      <div style={{
+      <div aria-hidden="true" style={{
         width: 44,
         height: 44,
         borderRadius: '50%',
@@ -119,7 +119,7 @@ function TutorBubble({ message, onClose }: { message: string; onClose: () => voi
       {/* Message */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-          <span style={{ fontSize: 18 }}>{emoji}</span>
+          <span aria-hidden="true" style={{ fontSize: 18 }}>{emoji}</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: '#FFD700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             Tutor huomauttaa
           </span>
@@ -152,11 +152,12 @@ function TutorBubble({ message, onClose }: { message: string; onClose: () => voi
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
+          transition: 'background 0.15s',
         }}
         onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.2)')}
         onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.1)')}
       >
-        <X size={16} />
+        <X size={16} aria-hidden="true" />
       </button>
     </div>
   )
@@ -267,7 +268,7 @@ export default function NavBar({
             </span>
           </a>
           {tutorMode && (
-            <span className="tutor-hint" style={{ color: '#A8C0CC', fontSize: 9 }}>selain</span>
+            <span className="tutor-hint" style={{ color: '#A8C0CC', fontSize: 12 }}>selain</span>
           )}
         </div>
 
@@ -281,7 +282,7 @@ export default function NavBar({
           tutorHint="Edellinen"
           tutorMode={tutorMode}
           aria-label="Takaisin edelliselle sivulle"
-          icon={<ChevronLeft size={24} />}
+          icon={<ChevronLeft size={24} aria-hidden="true" />}
         />
 
         {/* Forward button */}
@@ -292,7 +293,7 @@ export default function NavBar({
           tutorHint="Seuraava"
           tutorMode={tutorMode}
           aria-label="Eteenpäin seuraavalle sivulle"
-          icon={<ChevronRight size={24} />}
+          icon={<ChevronRight size={24} aria-hidden="true" />}
         />
 
         {/* Reload/Stop button */}
@@ -302,7 +303,7 @@ export default function NavBar({
           tutorHint={isLoading ? 'Lopeta' : 'Päivitä'}
           tutorMode={tutorMode}
           aria-label="Lataa sivu uudelleen"
-          icon={isLoading ? <X size={22} /> : <RotateCw size={20} />}
+          icon={isLoading ? <X size={22} aria-hidden="true" /> : <RotateCw size={20} aria-hidden="true" />}
         />
 
         {/* Home button */}
@@ -312,7 +313,7 @@ export default function NavBar({
           tutorHint="Kotisivu"
           tutorMode={tutorMode}
           aria-label="Mene kotisivulle"
-          icon={<Home size={22} />}
+          icon={<Home size={22} aria-hidden="true" />}
         />
 
         {/* URL Bar */}
@@ -326,7 +327,7 @@ export default function NavBar({
               onFocus={handleInputFocus}
               onBlur={handleInputBlur}
               onKeyDown={handleKeyDown}
-              placeholder="Kirjoita osoite tai hakusana..."
+              placeholder="Kirjoita osoite tai hakusana…"
               aria-label="Nettisivun osoite"
               spellCheck={false}
               autoCorrect="off"
@@ -341,8 +342,7 @@ export default function NavBar({
                 padding: '0 16px',
                 fontSize: 16,
                 fontFamily: 'inherit',
-                outline: 'none',
-                transition: 'all 0.15s',
+                transition: 'border-color 0.15s, background 0.15s, color 0.15s',
               }}
             />
           </form>
@@ -358,6 +358,7 @@ export default function NavBar({
         {/* Tutor mode indicator */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div
+            aria-label={tutorMode ? 'Opastus päällä' : 'Opastus pois'}
             title={tutorMode ? 'Opastus päällä' : 'Opastus pois'}
             style={{
               display: 'flex',
@@ -370,7 +371,7 @@ export default function NavBar({
               color: tutorMode ? '#FFD700' : 'rgba(255,255,255,0.4)',
             }}
           >
-            <GraduationCap size={20} />
+            <GraduationCap size={20} aria-hidden="true" />
           </div>
           {tutorMode && (
             <span className="tutor-hint">Opastus</span>
