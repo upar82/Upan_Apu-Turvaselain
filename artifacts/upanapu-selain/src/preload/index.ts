@@ -58,4 +58,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('browser:message', listener)
     return () => ipcRenderer.removeListener('browser:message', listener)
   },
+
+  clearMessage: (): Promise<void> =>
+    ipcRenderer.invoke('device:clearMessage'),
 })

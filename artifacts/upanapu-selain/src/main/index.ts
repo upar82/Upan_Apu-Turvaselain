@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, WebContentsView, shell, nativeTheme, Menu } from 'electron'
 import path from 'path'
 import { getSettings, saveSettings, type Settings } from './settings-store'
-import { registerDevice, startSync, stopSync, getPairCode, setSettingsChangedCallback, setMessageReceivedCallback, reportUrl } from './device-sync'
+import { registerDevice, startSync, stopSync, getPairCode, setSettingsChangedCallback, setMessageReceivedCallback, reportUrl, deleteMessage } from './device-sync'
 
 nativeTheme.themeSource = 'light'
 
@@ -271,6 +271,13 @@ ipcMain.handle('device:getPairCode', (): string | null => {
 ipcMain.handle('device:getStatus', (): { pairCode: string | null; syncEnabled: boolean; deviceId: string | null } => {
   const s = getSettings()
   return { pairCode: s.pairCode, syncEnabled: s.syncEnabled, deviceId: s.deviceId }
+})
+
+ipcMain.handle('device:clearMessage', async (): Promise<void> => {
+  const s = getSettings()
+  if (s.pairCode) {
+    await deleteMessage(s.pairCode)
+  }
 })
 
 app.whenReady().then(async () => {

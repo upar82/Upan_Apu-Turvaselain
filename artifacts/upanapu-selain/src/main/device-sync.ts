@@ -84,13 +84,20 @@ async function pollMessage(pairCode: string): Promise<void> {
     const data = await res.json() as { message: string | null }
     if (!data.message) return
 
-    // Fire callback so main process can display in renderer
+    // Fire callback so main process can display in renderer.
+    // The message is NOT deleted here — it is deleted only when
+    // the elderly user explicitly dismisses it (device:clearMessage IPC).
     onMessageReceived?.(data.message)
-
-    // Clear the message so it doesn't appear again
-    await fetch(`${API_BASE}/api/devices/${pairCode}/message`, { method: 'DELETE' })
   } catch {
     // message polling failures are silent
+  }
+}
+
+export async function deleteMessage(pairCode: string): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/api/devices/${pairCode}/message`, { method: 'DELETE' })
+  } catch {
+    // silent
   }
 }
 

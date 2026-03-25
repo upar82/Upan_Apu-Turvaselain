@@ -21,6 +21,7 @@ export default function App() {
   const [canGoForward, setCanGoForward] = useState(false)
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
   const [warning, setWarning] = useState<string | null>(null)
+  const [portalMessage, setPortalMessage] = useState<string | null>(null)
   const [pairCode, setPairCode] = useState<string | null>(null)
 
   useEffect(() => {
@@ -49,7 +50,7 @@ export default function App() {
     }))
     cleanups.push(window.electronAPI.onWarning(w => setWarning(w)))
     if (window.electronAPI.onMessage) {
-      cleanups.push(window.electronAPI.onMessage(msg => setWarning(`💬 Omainen lähetti viestin: ${msg}`)))
+      cleanups.push(window.electronAPI.onMessage(msg => setPortalMessage(msg)))
     }
 
     return () => cleanups.forEach(fn => fn())
@@ -61,6 +62,13 @@ export default function App() {
 
   const handleDismissWarning = useCallback(() => {
     setWarning(null)
+  }, [])
+
+  const handleDismissPortalMessage = useCallback(() => {
+    setPortalMessage(null)
+    if (window.electronAPI?.clearMessage) {
+      void window.electronAPI.clearMessage()
+    }
   }, [])
 
   const fontClass =
@@ -89,6 +97,52 @@ export default function App() {
           settings={settings}
           onDone={handleWelcomeDone}
         />
+      )}
+
+      {portalMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: 32,
+          right: 32,
+          maxWidth: 380,
+          background: '#1a2b38',
+          border: '2.5px solid #0866FF',
+          borderRadius: 18,
+          padding: '18px 22px',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.55)',
+          zIndex: 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <span style={{ fontSize: 28, flexShrink: 0 }}>🎓</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#0866FF', marginBottom: 4 }}>
+                Viesti omaiseltasi
+              </div>
+              <div style={{ fontSize: 15, color: '#FFFFFF', lineHeight: 1.55, wordBreak: 'break-word' }}>
+                {portalMessage}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={handleDismissPortalMessage}
+            style={{
+              alignSelf: 'flex-end',
+              background: '#0866FF',
+              border: 'none',
+              borderRadius: 10,
+              color: '#FFFFFF',
+              fontSize: 15,
+              fontWeight: 700,
+              padding: '10px 20px',
+              cursor: 'pointer',
+            }}
+          >
+            ✓ Selvä, kiitos!
+          </button>
+        </div>
       )}
     </div>
   )

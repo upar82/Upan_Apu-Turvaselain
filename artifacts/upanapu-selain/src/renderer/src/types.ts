@@ -32,6 +32,7 @@ export interface ElectronAPI {
   getDeviceStatus: () => Promise<DeviceStatus>
   getPairCode: () => Promise<string | null>
   onMessage?: (callback: (message: string) => void) => () => void
+  clearMessage?: () => Promise<void>
 }
 
 declare global {
