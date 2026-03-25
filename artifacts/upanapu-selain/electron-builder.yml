@@ -39,7 +39,7 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   installerLanguages:
-    - Finnish
+    - fi
   language: 1035
   createDesktopShortcut: true
   createStartMenuShortcut: true
