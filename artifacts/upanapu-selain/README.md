@@ -9,73 +9,73 @@ Kehitetty Upa'n Apu -brändillä (upanapu.com).
 
 - Yksinkertainen, selkeä käyttöliittymä isoilla painikkeilla
 - Opastus-tila: selittää jokaisen painikkeen suomeksi
-- Kotisivu-asetus (oletus: google.fi)
-- Tekstikoon valinta (normaali / suuri / erittäin suuri)
+- Tutori (🎓) varoittaa epäturvallisista tai maksusivuista
 - Toimii Windows, macOS ja Linux -käyttöjärjestelmissä
 
 ---
 
-## Nopea käynnistys (macOS tai Windows)
+## Windows .exe -asennus — latausohjeet
 
-Helpoin tapa käyttää ja kehittää:
+Windows-asennuspaketti rakennetaan automaattisesti GitHub Actionsin avulla
+aina kun koodi päivitetään GitHubiin.
+
+**Näin lataat asennuspaketin:**
+
+1. Avaa projektin GitHub-sivu
+2. Napsauta yläosan **Actions**-välilehteä
+3. Valitse viimeisin onnistunut **Build Windows** -ajo (vihreä ruksi ✅)
+4. Selaa alas kohtaan **Artifacts**
+5. Lataa **Upan-Apu-Selain-Windows** -paketti
+6. Pura zip-tiedosto ja käynnistä jokin seuraavista:
+   - **`Upa'n Apu Selain Setup 1.0.0.exe`** — täysi asennusohjelma (suositellaan)
+   - **`Upa'n Apu Selain 1.0.0.exe`** — portable, ei asennusta tarvita
+
+> **Huom:** Windows saattaa kysyä vahvistuksen tuntemattomalle ohjelmalle — valitse
+> "Lisätiedot" → "Suorita silti". Tämä johtuu siitä, että ohjelmaa ei ole vielä
+> allekirjoitettu kaupallisella sertifikaatilla.
+
+---
+
+## Kehitysympäristö — nopea käynnistys
 
 ```bash
 # 1. Siirry tähän kansioon
 cd artifacts/upanapu-selain
 
-# 2. Asenna riippuvuudet
-npm install
+# 2. Asenna riippuvuudet (pnpm-työtilassa)
+pnpm install
 
-# 3. Käynnistä ohjelma
-npm run dev
+# 3. Käynnistä ohjelma kehitystilassa
+pnpm run dev
 ```
-
-> **Huom macOS Apple Silicon (M1/M2/M3):** Jos kohtaat virheitä, kokeile ensin `npm install`.
-> Se ohittaa pnpm-työtilan asetukset ja toimii kaikilla alustoilla.
 
 ---
 
-## Asennuspakettien rakentaminen
+## Asennuspakettien rakentaminen paikallisesti
+
+### Windows (.exe) — GitHub Actions (suositellaan)
+
+Työnne hakemistosta `.github/workflows/build-windows.yml` hoitaa rakentamisen
+automaattisesti Windows-ympäristössä. Katso lataamisohjeet yllä.
+
+### Windows (.exe) — Windows-koneella suoraan
+
+```bash
+cd artifacts/upanapu-selain
+pnpm run dist:win
+```
+
+Tulos: `dist/packages/Upa'n Apu Selain Setup 1.0.0.exe`  
+ja: `dist/packages/Upa'n Apu Selain 1.0.0.exe` (portable)
 
 ### macOS (.dmg)
 
 ```bash
 cd artifacts/upanapu-selain
-npm run dist:mac
+pnpm run dist:mac
 ```
 
 Tulos: `dist/packages/Upa'n Apu Selain-1.0.0-universal.dmg`
-
-### Windows (.exe)
-
-```bash
-cd artifacts/upanapu-selain
-npm run dist:win
-```
-
-Tulos: `dist/packages/Upa'n Apu Selain Setup 1.0.0.exe`
-
-> **Windows-paketti macOS:ltä:** Vaatii Winen asennuksen (`brew install --cask wine-stable`).
-> Helpompi on rakentaa Windows-paketti Windows-koneella.
-
----
-
-## Kuvake (icon)
-
-Lisää kuvake-tiedostot `resources/`-kansioon ennen pakettien rakentamista:
-
-| Tiedosto | Käyttöjärjestelmä | Koko |
-|---|---|---|
-| `resources/icon.icns` | macOS | 512×512px tai suurempi |
-| `resources/icon.ico` | Windows | 256×256px |
-| `resources/icon.png` | Linux | 512×512px |
-
-**Kuvakkeen luominen macOS:llä `.icns`-muotoon:**
-```bash
-mkdir resources/icon.iconset
-# Kopioi PNG-tiedostot oikeilla nimillä (icon_512x512.png jne.)
-iconutil -c icns resources/icon.iconset -o resources/icon.icns
-```
 
 ---
 
@@ -94,10 +94,10 @@ artifacts/upanapu-selain/
 │       └── src/
 │           ├── App.tsx
 │           ├── components/
-│           │   ├── NavBar.tsx       # Navigaatiopalkki
-│           │   └── SettingsPage.tsx # Asetukset
+│           │   ├── NavBar.tsx        # Navigaatiopalkki + tutori
+│           │   └── WelcomeScreen.tsx # Ensikäynnistyksen tervetuloruutu
 │           └── types.ts
-├── resources/          # Kuvake-tiedostot
+├── resources/          # Kuvake-tiedostot (icon.ico, icon.png)
 ├── electron.vite.config.ts
 ├── electron-builder.yml
 └── package.json
