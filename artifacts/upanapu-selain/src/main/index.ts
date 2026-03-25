@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, WebContentsView, shell, nativeTheme, Menu, session } from 'electron'
+import { app, BrowserWindow, ipcMain, WebContentsView, shell, nativeTheme, Menu } from 'electron'
 import path from 'path'
 import { getSettings, saveSettings, type Settings } from './settings-store'
 import { registerDevice, startSync, stopSync, getPairCode, setSettingsChangedCallback } from './device-sync'
