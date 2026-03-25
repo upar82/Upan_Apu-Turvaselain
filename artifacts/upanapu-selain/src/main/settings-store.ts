@@ -1,6 +1,4 @@
-import { app } from 'electron'
-import path from 'path'
-import fs from 'fs'
+import Store from 'electron-store'
 
 export interface Settings {
   homeUrl: string
@@ -8,31 +6,48 @@ export interface Settings {
   fontSize: 'normal' | 'large' | 'xlarge'
 }
 
-const DEFAULT_SETTINGS: Settings = {
-  homeUrl: 'https://www.google.fi',
-  tutorMode: true,
-  fontSize: 'large'
+type Schema = {
+  homeUrl: string
+  tutorMode: boolean
+  fontSize: 'normal' | 'large' | 'xlarge'
 }
 
-function getSettingsPath(): string {
-  return path.join(app.getPath('userData'), 'upanapu-settings.json')
-}
+const store = new Store<Schema>({
+  name: 'upanapu-settings',
+  defaults: {
+    homeUrl: 'https://www.google.fi',
+    tutorMode: true,
+    fontSize: 'large'
+  },
+  schema: {
+    homeUrl: {
+      type: 'string',
+      default: 'https://www.google.fi'
+    },
+    tutorMode: {
+      type: 'boolean',
+      default: true
+    },
+    fontSize: {
+      type: 'string',
+      enum: ['normal', 'large', 'xlarge'],
+      default: 'large'
+    }
+  }
+})
 
 export function getSettings(): Settings {
-  try {
-    const raw = fs.readFileSync(getSettingsPath(), 'utf-8')
-    const parsed = JSON.parse(raw) as Partial<Settings>
-    return { ...DEFAULT_SETTINGS, ...parsed }
-  } catch {
-    return { ...DEFAULT_SETTINGS }
+  return {
+    homeUrl: store.get('homeUrl'),
+    tutorMode: store.get('tutorMode'),
+    fontSize: store.get('fontSize') as Settings['fontSize']
   }
 }
 
 export function saveSettings(settings: Settings): void {
-  try {
-    fs.mkdirSync(path.dirname(getSettingsPath()), { recursive: true })
-    fs.writeFileSync(getSettingsPath(), JSON.stringify(settings, null, 2), 'utf-8')
-  } catch (err) {
-    console.error('Asetuksien tallennus epäonnistui:', err)
-  }
+  store.set({
+    homeUrl: settings.homeUrl,
+    tutorMode: settings.tutorMode,
+    fontSize: settings.fontSize
+  })
 }
