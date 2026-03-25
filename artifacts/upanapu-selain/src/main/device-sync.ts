@@ -11,13 +11,8 @@ export function setSettingsChangedCallback(fn: (settings: Settings) => void): vo
   onSettingsChanged = fn
 }
 
-export async function registerDevice(): Promise<{ deviceId: string; pairCode: string } | null> {
+async function doRegister(): Promise<{ deviceId: string; pairCode: string } | null> {
   const settings = getSettings()
-
-  if (settings.deviceId && settings.pairCode) {
-    return { deviceId: settings.deviceId, pairCode: settings.pairCode }
-  }
-
   try {
     const res = await fetch(`${API_BASE}/api/devices/register`, {
       method: 'POST',
@@ -47,6 +42,14 @@ export async function registerDevice(): Promise<{ deviceId: string; pairCode: st
   }
 }
 
+export async function registerDevice(): Promise<{ deviceId: string; pairCode: string } | null> {
+  const settings = getSettings()
+  if (settings.deviceId && settings.pairCode) {
+    return { deviceId: settings.deviceId, pairCode: settings.pairCode }
+  }
+  return doRegister()
+}
+
 async function sendHeartbeat(pairCode: string): Promise<void> {
   try {
     await fetch(`${API_BASE}/api/devices/${pairCode}/heartbeat`, { method: 'POST' })
@@ -56,8 +59,25 @@ async function sendHeartbeat(pairCode: string): Promise<void> {
 }
 
 async function fetchAndApplySettings(pairCode: string): Promise<void> {
+  // Always send heartbeat first — device is online regardless of settings result
+  void sendHeartbeat(pairCode)
+
   try {
     const res = await fetch(`${API_BASE}/api/devices/${pairCode}/settings`)
+
+    if (res.status === 410 || res.status === 404) {
+      // Code expired or not found — clear pairing and re-register to get a fresh code
+      console.warn('[device-sync] Laitekoodi vanhentunut tai poistettu, uudelleenrekisteröidään...')
+      saveSettings({ deviceId: undefined, pairCode: undefined, syncEnabled: false })
+      stopSync()
+      const fresh = await doRegister()
+      if (fresh) {
+        onSettingsChanged?.(getSettings())
+        startSync()
+      }
+      return
+    }
+
     if (!res.ok) return
 
     const data = await res.json() as { settings: Partial<Settings> }
@@ -82,8 +102,6 @@ async function fetchAndApplySettings(pairCode: string): Promise<void> {
       onSettingsChanged?.(merged)
       console.log('[device-sync] Asetukset päivitetty etänä')
     }
-
-    await sendHeartbeat(pairCode)
   } catch (err) {
     console.warn('[device-sync] Pollausvirhe:', err)
   }
@@ -103,7 +121,10 @@ export function startSync(): void {
   void fetchAndApplySettings(pairCode)
 
   pollTimer = setInterval(() => {
-    void fetchAndApplySettings(pairCode)
+    const current = getSettings()
+    if (current.pairCode) {
+      void fetchAndApplySettings(current.pairCode)
+    }
   }, POLL_INTERVAL_MS)
 
   console.log('[device-sync] Synkronointi käynnistetty, pollaus 30s välein')
@@ -118,5 +139,5 @@ export function stopSync(): void {
 }
 
 export function getPairCode(): string | null {
-  return getSettings().pairCode
+  return getSettings().pairCode ?? null
 }

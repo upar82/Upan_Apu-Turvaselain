@@ -502,15 +502,18 @@ export default function NavBar({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                width: 40,
+                gap: 6,
                 height: 40,
+                padding: '0 10px',
                 borderRadius: 8,
                 background: 'rgba(255,255,255,0.08)',
                 border: 'none',
-                color: 'rgba(255,255,255,0.6)',
+                color: 'rgba(255,255,255,0.7)',
                 cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 600,
                 transition: 'background 0.15s, color 0.15s',
+                whiteSpace: 'nowrap',
               }}
               onMouseEnter={e => {
                 (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.18)'
@@ -518,14 +521,12 @@ export default function NavBar({
               }}
               onMouseLeave={e => {
                 (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
-                ;(e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.6)'
+                ;(e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.7)'
               }}
             >
-              <Link size={18} aria-hidden="true" />
+              <Link size={15} aria-hidden="true" />
+              Laitekoodi
             </button>
-            {tutorMode && (
-              <span className="tutor-hint">Koodi</span>
-            )}
           </div>
         </div>
 
