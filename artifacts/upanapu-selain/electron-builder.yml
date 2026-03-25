@@ -1,0 +1,42 @@
+appId: fi.upanapu.selain
+productName: "Upa'n Apu Selain"
+copyright: "Copyright © 2025 Upa'n Apu — Antti Keränen"
+
+directories:
+  output: dist/packages
+  buildResources: resources
+
+files:
+  - out/**/*
+  - package.json
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: resources/icon.ico
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - universal
+  icon: resources/icon.icns
+  category: public.app-category.utilities
+  darkModeSupport: false
+
+linux:
+  target:
+    - AppImage
+  icon: resources/icon.png
+  category: Network
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerLanguages:
+    - Finnish
+  language: 1035
+  createDesktopShortcut: true
+  createStartMenuShortcut: true

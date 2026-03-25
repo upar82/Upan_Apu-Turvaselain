@@ -50,6 +50,21 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 ## Packages
 
+### `artifacts/upanapu-selain` (`@workspace/upanapu-selain`)
+
+Electron-pohjainen työpöytäsovellus — Upa'n Apu Virtuaaliselain. Turvallinen, yksinkertainen nettiselain vanhemmille käyttäjille Upa'n Apu -brändillä.
+
+- **Stack**: Electron 33, React 19, Tailwind CSS v4, electron-vite, electron-builder
+- **Main process**: `src/main/index.ts` — BrowserWindow + WebContentsView, IPC-käsittelijät, asetukset
+- **Preload**: `src/preload/index.ts` — kontekstisilta rendererille (contextBridge)
+- **Renderer**: `src/renderer/src/` — React UI (NavBar, SettingsPage), Tailwind CSS, Lucide-kuvakkeet
+- **Settings**: Tallennetaan JSON-tiedostona `app.getPath('userData')`-hakemistoon
+- **Build**: `pnpm --filter @workspace/upanapu-selain run build` — electron-vite bundle
+- **Paketti macOS**: `pnpm --filter @workspace/upanapu-selain run dist:mac` → `.dmg`
+- **Paketti Windows**: `pnpm --filter @workspace/upanapu-selain run dist:win` → `.exe` (NSIS)
+- **Standalone-käyttö**: `cd artifacts/upanapu-selain && npm install && npm run dev`
+- Electron-binääri ei käynnisty Replit-ympäristössä (ei näyttöä), mutta rakennus ja tyypitarkistus toimivat
+
 ### `artifacts/api-server` (`@workspace/api-server`)
 
 Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
