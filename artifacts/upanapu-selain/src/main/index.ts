@@ -12,7 +12,7 @@ function buildMinimalMenu(): void {
         {
           label: app.name,
           submenu: [
-            { label: `Tietoja — Upa'n Apu Selain`, role: 'about' },
+            { label: `Tietoja — Upan Apu Turvaselain`, role: 'about' },
             { type: 'separator' },
             { label: 'Sulje ohjelma', role: 'quit', accelerator: 'Cmd+Q' }
           ]
@@ -75,7 +75,7 @@ function createWindow(): void {
     height: 820,
     minWidth: 900,
     minHeight: 600,
-    title: "Upa'n Apu Selain",
+    title: "Upan Apu Turvaselain",
     backgroundColor: '#1A2B38',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
@@ -177,7 +177,7 @@ function setupBrowserViewEvents(): void {
   browserView.webContents.on('page-title-updated', (_event, title) => {
     mainWindow?.webContents.send('browser:titleChanged', title)
     if (mainWindow) {
-      mainWindow.setTitle(title ? `${title} — Upa'n Apu Selain` : "Upa'n Apu Selain")
+      mainWindow.setTitle(title ? `${title} — Upan Apu Turvaselain` : "Upan Apu Turvaselain")
     }
   })
 

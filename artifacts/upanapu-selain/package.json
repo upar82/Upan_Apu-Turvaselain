@@ -1,7 +1,7 @@
 {
   "name": "@workspace/upanapu-selain",
   "version": "1.0.0",
-  "description": "Upa'n Apu Virtuaaliselain — turvallinen nettiselain vanhemmille käyttäjille",
+  "description": "Upan Apu Turvaselain — turvallinen nettiselain vanhemmille käyttäjille",
   "main": "out/main/index.js",
   "private": true,
   "scripts": {

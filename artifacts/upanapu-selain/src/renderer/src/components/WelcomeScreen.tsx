@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Settings } from '../types'
+import logoUrl from '../assets/upanapu-logo.png'
 
 interface WelcomeScreenProps {
   settings: Settings
@@ -41,18 +42,13 @@ export default function WelcomeScreen({ settings, onDone }: WelcomeScreenProps) 
 
         {/* Logo / Brand */}
         <div style={{ marginBottom: 32 }}>
-          <div style={{
-            fontWeight: 900,
-            fontSize: 36,
-            letterSpacing: '-1px',
-            color: '#0866FF',
-            textShadow: '0 2px 12px rgba(8,102,255,0.5)',
-            lineHeight: 1,
-          }}>
-            Upa'n<span style={{ color: '#FFFFFF' }}>Apu</span>
-          </div>
+          <img
+            src={logoUrl}
+            alt="Upan Apu"
+            style={{ height: 80, width: 'auto', margin: '0 auto' }}
+          />
           <div style={{ color: '#A8C0CC', fontSize: 16, marginTop: 6 }}>
-            Turvallinen selain
+            Turvaselain
           </div>
         </div>
 
@@ -87,7 +83,7 @@ export default function WelcomeScreen({ settings, onDone }: WelcomeScreenProps) 
             marginBottom: 16,
             lineHeight: 1.3,
           }}>
-            Tervetuloa Upa'n&nbsp;Apu -selaimeen!
+            Tervetuloa Upan Apu Turvaselaimeen!
           </h1>
 
           <p style={{

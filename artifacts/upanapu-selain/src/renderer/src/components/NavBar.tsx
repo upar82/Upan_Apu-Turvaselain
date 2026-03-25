@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent } from 'react'
 import { ChevronLeft, ChevronRight, Home, RotateCw, X, GraduationCap } from 'lucide-react'
+import logoUrl from '../assets/upanapu-logo.png'
 
 interface NavBarProps {
   currentUrl: string
@@ -251,25 +252,18 @@ export default function NavBar({
         {/* Logo */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 4, flexShrink: 0 }}>
           <a
-            href="https://upanapu.com"
-            onClick={e => { e.preventDefault(); window.electronAPI?.navigate('https://upanapu.com') }}
-            style={{ textDecoration: 'none', cursor: 'pointer' }}
-            title="Upa'n Apu — upanapu.com"
+            href="https://www.upanapu.com"
+            onClick={e => { e.preventDefault(); window.electronAPI?.navigate('https://www.upanapu.com') }}
+            style={{ textDecoration: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+            title="Avaa upanapu.com"
+            aria-label="Upan Apu — avaa upanapu.com"
           >
-            <span style={{
-              fontWeight: 900,
-              fontSize: 20,
-              letterSpacing: '-0.5px',
-              color: '#0866FF',
-              textShadow: '0 1px 4px rgba(8,102,255,0.5)',
-              lineHeight: 1,
-            }}>
-              Upa'n<span style={{ color: '#FFFFFF' }}>Apu</span>
-            </span>
+            <img
+              src={logoUrl}
+              alt="Upan Apu"
+              style={{ height: 60, width: 'auto' }}
+            />
           </a>
-          {tutorMode && (
-            <span className="tutor-hint" style={{ color: '#A8C0CC', fontSize: 12 }}>selain</span>
-          )}
         </div>
 
         <div style={{ width: 1, height: 40, background: 'rgba(255,255,255,0.15)', margin: '0 4px', flexShrink: 0 }} />
