@@ -93,7 +93,10 @@ export function startSync(): void {
   if (pollTimer) return
 
   const settings = getSettings()
-  if (!settings.pairCode || !settings.syncEnabled) return
+  if (!settings.pairCode) {
+    console.log('[device-sync] Ei laitekoodia — synkronointi ei käynnisty')
+    return
+  }
 
   const pairCode = settings.pairCode
 

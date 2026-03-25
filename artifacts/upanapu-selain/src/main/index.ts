@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, WebContentsView, shell, nativeTheme, Menu } from 'electron'
 import path from 'path'
 import { getSettings, saveSettings, type Settings } from './settings-store'
-import { startSync, stopSync, getPairCode, setSettingsChangedCallback } from './device-sync'
+import { registerDevice, startSync, stopSync, getPairCode, setSettingsChangedCallback } from './device-sync'
 
 nativeTheme.themeSource = 'light'
 
@@ -269,7 +269,7 @@ ipcMain.handle('device:getStatus', (): { pairCode: string | null; syncEnabled: b
   return { pairCode: s.pairCode, syncEnabled: s.syncEnabled, deviceId: s.deviceId }
 })
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   buildMinimalMenu()
   createWindow()
 
@@ -281,6 +281,12 @@ app.whenReady().then(() => {
       browserView?.webContents.loadURL(home)
     }
   })
+
+  const registered = await registerDevice()
+  if (registered) {
+    const updatedSettings = getSettings()
+    mainWindow?.webContents.send('settings:updated', updatedSettings)
+  }
 
   startSync()
 
