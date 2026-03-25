@@ -25,7 +25,24 @@ app.use(
     },
   }),
 );
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const allowed = [
+        /^https?:\/\/(www\.)?upanapu\.com$/,
+        /^https?:\/\/[a-z0-9-]+\.replit\.(dev|app)$/,
+        /^https?:\/\/localhost(:\d+)?$/,
+      ];
+      if (allowed.some(re => re.test(origin))) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
