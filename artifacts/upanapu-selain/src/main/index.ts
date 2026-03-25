@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, WebContentsView, shell, nativeTheme, Menu } from 'electron'
 import path from 'path'
 import { getSettings, saveSettings, type Settings } from './settings-store'
-import { registerDevice, startSync, stopSync, getPairCode, setSettingsChangedCallback } from './device-sync'
+import { registerDevice, startSync, stopSync, getPairCode, setSettingsChangedCallback, setMessageReceivedCallback, reportUrl } from './device-sync'
 
 nativeTheme.themeSource = 'light'
 
@@ -156,6 +156,10 @@ function setupBrowserViewEvents(): void {
     const settings = getSettings()
     const warning = checkUrlForWarning(url, settings)
     mainWindow?.webContents.send('browser:warning', warning)
+    if (settings.pairCode) {
+      const title = browserView?.webContents.getTitle() ?? undefined
+      void reportUrl(settings.pairCode, url, title)
+    }
   })
 
   browserView.webContents.on('did-navigate-in-page', (_event, url) => {
@@ -290,6 +294,10 @@ app.whenReady().then(async () => {
     if (current && current !== home && !current.startsWith('about:')) {
       browserView?.webContents.loadURL(home)
     }
+  })
+
+  setMessageReceivedCallback((message: string) => {
+    mainWindow?.webContents.send('browser:message', message)
   })
 
   const registered = await registerDevice()

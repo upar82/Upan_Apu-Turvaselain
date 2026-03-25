@@ -48,6 +48,9 @@ export default function App() {
       if (s.pairCode) setPairCode(s.pairCode)
     }))
     cleanups.push(window.electronAPI.onWarning(w => setWarning(w)))
+    if (window.electronAPI.onMessage) {
+      cleanups.push(window.electronAPI.onMessage(msg => setWarning(`💬 Omainen lähetti viestin: ${msg}`)))
+    }
 
     return () => cleanups.forEach(fn => fn())
   }, [])

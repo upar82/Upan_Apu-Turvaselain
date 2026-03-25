@@ -6,9 +6,14 @@ const POLL_INTERVAL_MS = 30_000
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let onSettingsChanged: ((settings: Settings) => void) | null = null
+let onMessageReceived: ((message: string) => void) | null = null
 
 export function setSettingsChangedCallback(fn: (settings: Settings) => void): void {
   onSettingsChanged = fn
+}
+
+export function setMessageReceivedCallback(fn: (message: string) => void): void {
+  onMessageReceived = fn
 }
 
 async function doRegister(): Promise<{ deviceId: string; pairCode: string } | null> {
@@ -58,9 +63,43 @@ async function sendHeartbeat(pairCode: string): Promise<void> {
   }
 }
 
+export async function reportUrl(pairCode: string, url: string, title?: string): Promise<void> {
+  if (!url || url.startsWith('about:') || url.startsWith('chrome:')) return
+  try {
+    await fetch(`${API_BASE}/api/devices/${pairCode}/navigate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, title: title ?? null })
+    })
+  } catch {
+    // URL reporting failures are silent
+  }
+}
+
+async function pollMessage(pairCode: string): Promise<void> {
+  try {
+    const res = await fetch(`${API_BASE}/api/devices/${pairCode}/message`)
+    if (!res.ok) return
+
+    const data = await res.json() as { message: string | null }
+    if (!data.message) return
+
+    // Fire callback so main process can display in renderer
+    onMessageReceived?.(data.message)
+
+    // Clear the message so it doesn't appear again
+    await fetch(`${API_BASE}/api/devices/${pairCode}/message`, { method: 'DELETE' })
+  } catch {
+    // message polling failures are silent
+  }
+}
+
 async function fetchAndApplySettings(pairCode: string): Promise<void> {
   // Always send heartbeat first — device is online regardless of settings result
   void sendHeartbeat(pairCode)
+
+  // Poll for pending message from portal
+  void pollMessage(pairCode)
 
   try {
     const res = await fetch(`${API_BASE}/api/devices/${pairCode}/settings`)

@@ -31,6 +31,7 @@ export interface ElectronAPI {
   onSettingsUpdated: (callback: (settings: Settings) => void) => () => void
   getDeviceStatus: () => Promise<DeviceStatus>
   getPairCode: () => Promise<string | null>
+  onMessage?: (callback: (message: string) => void) => () => void
 }
 
 declare global {

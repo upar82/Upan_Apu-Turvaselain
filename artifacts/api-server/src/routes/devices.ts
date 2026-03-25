@@ -102,6 +102,8 @@ router.get("/devices/:code/settings", settingsLimiter, async (req, res) => {
       deviceId: device.deviceId,
       settings: device.settings,
       lastSeen: device.lastSeen,
+      currentUrl: device.currentUrl ?? null,
+      visitHistory: device.visitHistory ?? [],
     });
   } catch (err) {
     res.status(500).json({ error: "Asetuksien haku epäonnistui." });
@@ -166,6 +168,113 @@ router.post("/devices/:code/heartbeat", settingsLimiter, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Heartbeat epäonnistui." });
+  }
+});
+
+router.post("/devices/:code/navigate", settingsLimiter, async (req, res) => {
+  try {
+    const { code } = req.params;
+    const url = req.body?.url as string | undefined;
+    const title = req.body?.title as string | undefined;
+
+    if (!url || typeof url !== "string") {
+      res.status(400).json({ error: "URL puuttuu." });
+      return;
+    }
+
+    const rows = await db
+      .select({ visitHistory: devicesTable.visitHistory })
+      .from(devicesTable)
+      .where(eq(devicesTable.pairCode, code));
+
+    if (rows.length === 0) {
+      res.status(404).json({ error: "Laitetta ei löydy." });
+      return;
+    }
+
+    const existing = (rows[0].visitHistory as Array<{ url: string; title?: string; ts: string }>) ?? [];
+    const entry = { url, title: title ?? null, ts: new Date().toISOString() };
+    const updated = [entry, ...existing].slice(0, 20);
+
+    await db
+      .update(devicesTable)
+      .set({ currentUrl: url, visitHistory: updated })
+      .where(eq(devicesTable.pairCode, code));
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Navigointiraportti epäonnistui." });
+  }
+});
+
+router.get("/devices/:code/message", settingsLimiter, async (req, res) => {
+  try {
+    const { code } = req.params;
+
+    const rows = await db
+      .select({ pendingMessage: devicesTable.pendingMessage })
+      .from(devicesTable)
+      .where(eq(devicesTable.pairCode, code));
+
+    if (rows.length === 0) {
+      res.status(404).json({ error: "Laitetta ei löydy." });
+      return;
+    }
+
+    res.json({ message: rows[0].pendingMessage ?? null });
+  } catch (err) {
+    res.status(500).json({ error: "Viestin haku epäonnistui." });
+  }
+});
+
+router.put("/devices/:code/message", settingsLimiter, async (req, res) => {
+  try {
+    const { code } = req.params;
+    const message = req.body?.message as string | null | undefined;
+
+    if (message !== null && message !== undefined && typeof message !== "string") {
+      res.status(400).json({ error: "Viesti pitää olla teksti tai null." });
+      return;
+    }
+
+    if (typeof message === "string" && message.length > 500) {
+      res.status(400).json({ error: "Viesti on liian pitkä (max 500 merkkiä)." });
+      return;
+    }
+
+    const rows = await db
+      .select({ deviceId: devicesTable.deviceId })
+      .from(devicesTable)
+      .where(eq(devicesTable.pairCode, code));
+
+    if (rows.length === 0) {
+      res.status(404).json({ error: "Laitetta ei löydy." });
+      return;
+    }
+
+    await db
+      .update(devicesTable)
+      .set({ pendingMessage: message ?? null })
+      .where(eq(devicesTable.pairCode, code));
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Viestin tallennus epäonnistui." });
+  }
+});
+
+router.delete("/devices/:code/message", settingsLimiter, async (req, res) => {
+  try {
+    const { code } = req.params;
+
+    await db
+      .update(devicesTable)
+      .set({ pendingMessage: null })
+      .where(eq(devicesTable.pairCode, code));
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Viestin tyhjennys epäonnistui." });
   }
 });
 

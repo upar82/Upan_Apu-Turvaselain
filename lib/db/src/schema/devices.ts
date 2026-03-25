@@ -9,6 +9,9 @@ export const devicesTable = pgTable("devices", {
   lastSeen: timestamp("last_seen").notNull().defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   active: boolean("active").notNull().default(true),
+  currentUrl: text("current_url"),
+  visitHistory: jsonb("visit_history").notNull().default([]),
+  pendingMessage: text("pending_message"),
 });
 
 export const insertDeviceSchema = createInsertSchema(devicesTable).omit({

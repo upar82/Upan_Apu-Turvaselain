@@ -7,10 +7,18 @@ interface DeviceSettings {
   fontSize: "normal" | "large" | "xlarge";
 }
 
+interface VisitEntry {
+  url: string;
+  title?: string | null;
+  ts: string;
+}
+
 interface DeviceInfo {
   deviceId: string;
   settings: DeviceSettings;
   lastSeen: string;
+  currentUrl: string | null;
+  visitHistory: VisitEntry[];
 }
 
 const API_BASE = "/api";
@@ -35,6 +43,16 @@ function formatCode(raw: string): string {
   return `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
 }
 
+function shortenUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    const path = u.pathname.length > 1 ? u.pathname.slice(0, 30) : "";
+    return u.hostname + path + (u.pathname.length > 30 ? "…" : "");
+  } catch {
+    return url.slice(0, 50);
+  }
+}
+
 export default function App() {
   const [view, setView] = useState<"connect" | "settings">("connect");
   const [rawCode, setRawCode] = useState("");
@@ -50,7 +68,12 @@ export default function App() {
   });
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [messageText, setMessageText] = useState("");
+  const [messageSending, setMessageSending] = useState(false);
+  const [messageSent, setMessageSent] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const msgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const savedCode = sessionStorage.getItem("upanapu_code");
@@ -60,6 +83,32 @@ export default function App() {
       handleConnect(savedCode);
     }
   }, []);
+
+  // Auto-refresh activity data every 30s while in settings view
+  useEffect(() => {
+    if (view !== "settings") {
+      if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
+      return;
+    }
+    refreshTimerRef.current = setInterval(() => {
+      const digits = sessionStorage.getItem("upanapu_code") ?? "";
+      if (digits.length === 6) refreshActivity(digits);
+    }, 30_000);
+    return () => {
+      if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
+    };
+  }, [view]);
+
+  async function refreshActivity(digits: string) {
+    try {
+      const res = await fetch(`${API_BASE}/devices/${digits}/settings`);
+      if (!res.ok) return;
+      const data = await res.json() as DeviceInfo;
+      setDeviceInfo(data);
+    } catch {
+      // silent
+    }
+  }
 
   async function handleConnect(code?: string) {
     const digits = (code ?? rawCode).replace(/\D/g, "");
@@ -134,6 +183,36 @@ export default function App() {
     }
   }
 
+  async function handleSendMessage() {
+    if (!messageText.trim() || messageSending) return;
+    const digits = rawCode.replace(/\D/g, "");
+
+    setMessageSending(true);
+    setMessageSent(false);
+
+    try {
+      const res = await fetch(`${API_BASE}/devices/${digits}/message`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: messageText.trim() }),
+      });
+
+      if (!res.ok) {
+        setError("Viestin lähettäminen epäonnistui.");
+        return;
+      }
+
+      setMessageText("");
+      setMessageSent(true);
+      if (msgTimerRef.current) clearTimeout(msgTimerRef.current);
+      msgTimerRef.current = setTimeout(() => setMessageSent(false), 5000);
+    } catch {
+      setError("Verkkovirhe viestiä lähetettäessä.");
+    } finally {
+      setMessageSending(false);
+    }
+  }
+
   function handleDisconnect() {
     sessionStorage.removeItem("upanapu_code");
     setView("connect");
@@ -142,6 +221,8 @@ export default function App() {
     setDeviceInfo(null);
     setError(null);
     setSaveSuccess(false);
+    setMessageText("");
+    setMessageSent(false);
   }
 
   function handleCodeInput(value: string) {
@@ -164,7 +245,7 @@ export default function App() {
             Upan Apu — Omaisen Portaali
           </h1>
           <p style={{ fontSize: 15, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>
-            Hallinnoi läheisesi turvaselaimen asetuksia etänä.
+            Seuraa ja hallinnoi läheisesi turvaselainta etänä.
           </p>
         </div>
 
@@ -180,7 +261,7 @@ export default function App() {
               Yhdistä laitteeseen
             </h2>
             <p style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", marginBottom: 24, lineHeight: 1.6 }}>
-              Pyydä läheistäsi avaamaan Upan Apu -selain ja painamaan 🔗-kuvaketta 
+              Pyydä läheistäsi avaamaan Upan Apu -selain ja painamaan Laitekoodi-painiketta
               työkalupalkissa. Syötä näytölle ilmestyvä 6-numeroinen laitekoodi alle.
             </p>
 
@@ -254,7 +335,7 @@ export default function App() {
               border: "1.5px solid rgba(8,102,255,0.3)",
               borderRadius: 16,
               padding: "16px 20px",
-              marginBottom: 20,
+              marginBottom: 16,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
@@ -265,7 +346,7 @@ export default function App() {
                   ✅ Yhdistetty
                 </div>
                 <div style={{ fontSize: 13, color: "rgba(255,255,255,0.6)" }}>
-                  Laite viimeksi aktiivinen: <strong style={{ color: "#FFFFFF" }}>{formatLastSeen(deviceInfo.lastSeen)}</strong>
+                  Viimeksi aktiivinen: <strong style={{ color: "#FFFFFF" }}>{formatLastSeen(deviceInfo.lastSeen)}</strong>
                 </div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", fontFamily: "monospace", marginTop: 2 }}>
                   Koodi: {formatCode(rawCode)}
@@ -286,6 +367,155 @@ export default function App() {
               >
                 Vaihda laitetta
               </button>
+            </div>
+
+            {/* Monitoring card */}
+            <div style={{
+              background: "rgba(255,215,0,0.06)",
+              border: "1.5px solid rgba(255,215,0,0.2)",
+              borderRadius: 16,
+              padding: "20px 24px",
+              marginBottom: 16,
+            }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: "#FFD700", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+                👁 Seuranta
+              </h2>
+
+              {/* Current URL */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.5)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Parhaillaan
+                </div>
+                {deviceInfo.currentUrl ? (
+                  <div style={{
+                    background: "rgba(255,255,255,0.06)",
+                    borderRadius: 8,
+                    padding: "8px 12px",
+                    fontSize: 14,
+                    color: "#FFFFFF",
+                    fontFamily: "monospace",
+                    wordBreak: "break-all",
+                  }}>
+                    {shortenUrl(deviceInfo.currentUrl)}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.35)", fontStyle: "italic" }}>
+                    Ei sivua auki
+                  </div>
+                )}
+              </div>
+
+              {/* Visit history */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.5)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Viimeisimmät sivut
+                </div>
+                {deviceInfo.visitHistory && deviceInfo.visitHistory.length > 0 ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    {deviceInfo.visitHistory.slice(0, 10).map((entry, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "6px 10px",
+                          background: "rgba(255,255,255,0.04)",
+                          borderRadius: 6,
+                        }}
+                      >
+                        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", flexShrink: 0, minWidth: 36 }}>
+                          {formatLastSeen(entry.ts)}
+                        </span>
+                        <span style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {entry.title ? entry.title : shortenUrl(entry.url)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.35)", fontStyle: "italic" }}>
+                    Ei selaushistoriaa vielä
+                  </div>
+                )}
+                <p style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", marginTop: 8, lineHeight: 1.5 }}>
+                  Päivittyy automaattisesti 30 sekunnin välein
+                </p>
+              </div>
+            </div>
+
+            {/* Message card */}
+            <div style={{
+              background: "rgba(255,255,255,0.05)",
+              border: "1.5px solid rgba(255,255,255,0.1)",
+              borderRadius: 16,
+              padding: "20px 24px",
+              marginBottom: 16,
+            }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: "#FFFFFF", marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
+                💬 Lähetä viesti
+              </h2>
+              <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginBottom: 14, lineHeight: 1.5 }}>
+                Viesti ilmestyy läheisesi selaimeen tutor-kuplana seuraavan 30 sekunnin sisällä.
+              </p>
+              <textarea
+                value={messageText}
+                onChange={e => setMessageText(e.target.value)}
+                placeholder="Kirjoita lyhyt viesti tai ohje…"
+                maxLength={500}
+                rows={3}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  fontSize: 14,
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1.5px solid rgba(255,255,255,0.15)",
+                  borderRadius: 10,
+                  color: "#FFFFFF",
+                  outline: "none",
+                  resize: "vertical",
+                  fontFamily: "inherit",
+                  lineHeight: 1.5,
+                  boxSizing: "border-box",
+                  marginBottom: 8,
+                }}
+              />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>
+                  {messageText.length}/500
+                </span>
+                <button
+                  onClick={handleSendMessage}
+                  disabled={messageSending || !messageText.trim()}
+                  style={{
+                    padding: "10px 20px",
+                    background: messageText.trim() && !messageSending ? "#0866FF" : "rgba(255,255,255,0.1)",
+                    border: "none",
+                    borderRadius: 10,
+                    color: messageText.trim() && !messageSending ? "#FFFFFF" : "rgba(255,255,255,0.35)",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: messageText.trim() && !messageSending ? "pointer" : "not-allowed",
+                    transition: "background 0.15s",
+                  }}
+                >
+                  {messageSending ? "Lähetetään…" : "📨 Lähetä viesti"}
+                </button>
+              </div>
+              {messageSent && (
+                <div style={{
+                  marginTop: 10,
+                  background: "rgba(34,197,94,0.15)",
+                  border: "1.5px solid rgba(34,197,94,0.4)",
+                  borderRadius: 8,
+                  padding: "10px 14px",
+                  fontSize: 13,
+                  color: "#4ade80",
+                  fontWeight: 600,
+                }} role="status">
+                  ✅ Viesti lähetetty! Se ilmestyy selaimeen seuraavan 30 s kuluessa.
+                </div>
+              )}
             </div>
 
             {/* Settings card */}

@@ -52,4 +52,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   getPairCode: (): Promise<string | null> =>
     ipcRenderer.invoke('device:getPairCode'),
+
+  onMessage: (callback: (message: string) => void) => {
+    const listener = (_: Electron.IpcRendererEvent, message: string) => callback(message)
+    ipcRenderer.on('browser:message', listener)
+    return () => ipcRenderer.removeListener('browser:message', listener)
+  },
 })
