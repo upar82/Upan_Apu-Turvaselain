@@ -3,18 +3,32 @@ import { rateLimit } from "express-rate-limit";
 import { eq, sql } from "drizzle-orm";
 import { db, devicesTable } from "@workspace/db";
 import { randomBytes } from "crypto";
+import { z } from "zod";
+
+const deviceSettingsSchema = z.object({
+  homeUrl: z.string().url().optional(),
+  tutorMode: z.boolean().optional(),
+  blockPayments: z.boolean().optional(),
+  fontSize: z.enum(["normal", "large", "xlarge"]).optional(),
+}).strict();
 
 const router: IRouter = Router();
 
-const limiter = rateLimit({
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 20,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Liian monta rekisteröintipyyntöä, yritä tunnin kuluttua." },
+});
+
+const settingsLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 50,
+  limit: 500,
   standardHeaders: "draft-8",
   legacyHeaders: false,
   message: { error: "Liian monta pyyntöä, odota hetki." },
 });
-
-router.use(limiter);
 
 function generateDeviceId(): string {
   return randomBytes(16).toString("hex");
@@ -30,7 +44,7 @@ function isCodeExpired(lastSeen: Date): boolean {
   return Date.now() - lastSeen.getTime() > thirtyDays;
 }
 
-router.post("/devices/register", async (req, res) => {
+router.post("/devices/register", registerLimiter, async (req, res) => {
   try {
     const deviceId = generateDeviceId();
     let pairCode: string;
@@ -64,7 +78,7 @@ router.post("/devices/register", async (req, res) => {
   }
 });
 
-router.get("/devices/:code/settings", async (req, res) => {
+router.get("/devices/:code/settings", settingsLimiter, async (req, res) => {
   try {
     const { code } = req.params;
     const rows = await db
@@ -94,15 +108,17 @@ router.get("/devices/:code/settings", async (req, res) => {
   }
 });
 
-router.put("/devices/:code/settings", async (req, res) => {
+router.put("/devices/:code/settings", settingsLimiter, async (req, res) => {
   try {
     const { code } = req.params;
-    const newSettings = req.body?.settings;
+    const rawSettings = req.body?.settings;
 
-    if (!newSettings || typeof newSettings !== "object") {
-      res.status(400).json({ error: "Virheelliset asetukset." });
+    const parsed = deviceSettingsSchema.safeParse(rawSettings);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Virheelliset asetukset.", details: parsed.error.flatten() });
       return;
     }
+    const newSettings = parsed.data;
 
     const rows = await db
       .select()
@@ -132,7 +148,7 @@ router.put("/devices/:code/settings", async (req, res) => {
   }
 });
 
-router.post("/devices/:code/heartbeat", async (req, res) => {
+router.post("/devices/:code/heartbeat", settingsLimiter, async (req, res) => {
   try {
     const { code } = req.params;
 
