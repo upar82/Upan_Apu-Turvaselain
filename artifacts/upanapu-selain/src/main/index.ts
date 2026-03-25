@@ -1,8 +1,39 @@
-import { app, BrowserWindow, ipcMain, WebContentsView, shell, nativeTheme } from 'electron'
+import { app, BrowserWindow, ipcMain, WebContentsView, shell, nativeTheme, Menu } from 'electron'
 import path from 'path'
 import { getSettings, saveSettings, type Settings } from './settings-store'
 
 nativeTheme.themeSource = 'light'
+
+function buildMinimalMenu(): void {
+  const isMac = process.platform === 'darwin'
+
+  const template: Electron.MenuItemConstructorOptions[] = isMac
+    ? [
+        {
+          label: app.name,
+          submenu: [
+            { label: `Tietoja — Upa'n Apu Selain`, role: 'about' },
+            { type: 'separator' },
+            { label: 'Sulje ohjelma', role: 'quit', accelerator: 'Cmd+Q' }
+          ]
+        },
+        {
+          label: 'Muokkaa',
+          submenu: [
+            { label: 'Kumoa', role: 'undo', accelerator: 'Cmd+Z' },
+            { type: 'separator' },
+            { label: 'Leikkaa', role: 'cut', accelerator: 'Cmd+X' },
+            { label: 'Kopioi', role: 'copy', accelerator: 'Cmd+C' },
+            { label: 'Liitä', role: 'paste', accelerator: 'Cmd+V' },
+            { label: 'Valitse kaikki', role: 'selectAll', accelerator: 'Cmd+A' }
+          ]
+        }
+      ]
+    : []
+
+  const menu = Menu.buildFromTemplate(template)
+  Menu.setApplicationMenu(menu.items.length > 0 ? menu : null)
+}
 
 let mainWindow: BrowserWindow | null = null
 let browserView: WebContentsView | null = null
@@ -228,6 +259,7 @@ ipcMain.handle('settings:update', (_event, newSettings: Settings): boolean => {
 })
 
 app.whenReady().then(() => {
+  buildMinimalMenu()
   createWindow()
 
   app.on('activate', () => {
