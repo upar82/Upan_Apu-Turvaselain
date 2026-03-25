@@ -61,21 +61,22 @@ automaattisesti Windows-ympäristössä. Katso lataamisohjeet yllä.
 ### Windows (.exe) — Windows-koneella suoraan
 
 ```bash
-cd artifacts/upanapu-selain
-pnpm run dist:win
+# Projektin juuressa (pnpm-työtila):
+pnpm --filter @workspace/upanapu-selain run dist:win
+
+# Tai suoraan kansiossa:
+cd artifacts/upanapu-selain && pnpm run dist:win
 ```
 
-Tulos: `dist/packages/Upa'n Apu Selain Setup 1.0.0.exe`  
-ja: `dist/packages/Upa'n Apu Selain 1.0.0.exe` (portable)
+Tulos: `dist/packages/` — asennuspaketti (Setup .exe) ja portable (.exe)
 
 ### macOS (.dmg)
 
 ```bash
-cd artifacts/upanapu-selain
-pnpm run dist:mac
+pnpm --filter @workspace/upanapu-selain run dist:mac
 ```
 
-Tulos: `dist/packages/Upa'n Apu Selain-1.0.0-universal.dmg`
+Tulos: `dist/packages/` — DMG-asennuspaketti
 
 ---
 
