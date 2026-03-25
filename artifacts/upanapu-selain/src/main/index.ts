@@ -168,6 +168,10 @@ function setupBrowserViewEvents(): void {
     const settings = getSettings()
     const warning = checkUrlForWarning(url, settings)
     mainWindow?.webContents.send('browser:warning', warning)
+    if (settings.pairCode) {
+      const title = browserView?.webContents.getTitle() ?? undefined
+      void reportUrl(settings.pairCode, url, title)
+    }
   })
 
   browserView.webContents.on('did-start-loading', () => {

@@ -267,10 +267,16 @@ router.delete("/devices/:code/message", settingsLimiter, async (req, res) => {
   try {
     const { code } = req.params;
 
-    await db
+    const result = await db
       .update(devicesTable)
       .set({ pendingMessage: null })
-      .where(eq(devicesTable.pairCode, code));
+      .where(eq(devicesTable.pairCode, code))
+      .returning({ deviceId: devicesTable.deviceId });
+
+    if (result.length === 0) {
+      res.status(404).json({ error: "Laitetta ei löydy." });
+      return;
+    }
 
     res.json({ success: true });
   } catch (err) {
