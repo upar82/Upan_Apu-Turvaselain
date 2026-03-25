@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, WebContentsView, shell, nativeTheme, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, WebContentsView, shell, nativeTheme, Menu, session } from 'electron'
 import path from 'path'
 import { getSettings, saveSettings, type Settings } from './settings-store'
 import { registerDevice, startSync, stopSync, getPairCode, setSettingsChangedCallback } from './device-sync'
@@ -270,8 +270,18 @@ ipcMain.handle('device:getStatus', (): { pairCode: string | null; syncEnabled: b
 })
 
 app.whenReady().then(async () => {
+  // Reset per-session settings every launch — payment question always asked
+  saveSettings({ firstRun: true, blockPayments: false })
+
   buildMinimalMenu()
   createWindow()
+
+  // Clear all browsing data from previous session (incognito-like behaviour)
+  if (browserView) {
+    const ses = browserView.webContents.session
+    await ses.clearStorageData()
+    await ses.clearCache()
+  }
 
   setSettingsChangedCallback((newSettings: Settings) => {
     mainWindow?.webContents.send('settings:updated', newSettings)
