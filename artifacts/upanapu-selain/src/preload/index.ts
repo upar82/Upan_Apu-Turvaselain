@@ -45,5 +45,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const listener = (_: Electron.IpcRendererEvent, settings: Settings) => callback(settings)
     ipcRenderer.on('settings:updated', listener)
     return () => ipcRenderer.removeListener('settings:updated', listener)
-  }
+  },
+
+  getDeviceStatus: (): Promise<{ pairCode: string | null; syncEnabled: boolean; deviceId: string | null }> =>
+    ipcRenderer.invoke('device:getStatus'),
+
+  getPairCode: (): Promise<string | null> =>
+    ipcRenderer.invoke('device:getPairCode'),
 })

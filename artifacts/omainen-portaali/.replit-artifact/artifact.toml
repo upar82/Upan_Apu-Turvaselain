@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/omainen-portaali/"
+title = "Omaisen Portaali — Upan Apu"
+version = "1.0.0"
+id = "artifacts/omainen-portaali"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/omainen-portaali/" ]
+localPort = 25001
+
+[services.development]
+run = "pnpm --filter @workspace/omainen-portaali run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/omainen-portaali", "run", "build" ]
+publicDir = "artifacts/omainen-portaali/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25001"
+BASE_PATH = "/omainen-portaali/"

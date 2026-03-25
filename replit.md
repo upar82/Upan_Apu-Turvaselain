@@ -59,6 +59,11 @@ Electron-pohjainen työpöytäsovellus — Upa'n Apu Virtuaaliselain. Turvalline
 - **Preload**: `src/preload/index.ts` — kontekstisilta rendererille (contextBridge)
 - **Renderer**: `src/renderer/src/` — React UI (NavBar, SettingsPage), Tailwind CSS, Lucide-kuvakkeet
 - **Settings**: Tallennetaan JSON-tiedostona `app.getPath('userData')`-hakemistoon
+  - Fields: `homeUrl`, `tutorMode`, `fontSize`, `firstRun`, `blockPayments`, `deviceId`, `pairCode`, `syncEnabled`
+- **Remote management**: `src/main/device-sync.ts` — registers device on first run, polls settings every 30s
+  - NavBar has a 🔗 button that shows the 6-digit pairing code in a modal
+  - `src/main/device-sync.ts` uses `VITE_API_URL` env var for the API base (defaults to production URL)
+- **IPC channels for device sync**: `device:getStatus`, `device:getPairCode`
 - **Build**: `pnpm --filter @workspace/upanapu-selain run build` — electron-vite bundle
 - **Paketti macOS**: `pnpm --filter @workspace/upanapu-selain run dist:mac` → `.dmg`
 - **Paketti Windows**: `pnpm --filter @workspace/upanapu-selain run dist:win` → `.exe` (NSIS)
@@ -71,11 +76,29 @@ Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` 
 
 - Entry: `src/index.ts` — reads `PORT`, starts Express
 - App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
+- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /healthz`
+- Device remote management routes (`src/routes/devices.ts`):
+  - `POST /api/devices/register` — creates a new device, returns `deviceId` and 6-digit `pairCode`
+  - `GET /api/devices/:code/settings` — returns device settings (for the family portal)
+  - `PUT /api/devices/:code/settings` — updates device settings (family portal changes them)
+  - `POST /api/devices/:code/heartbeat` — updates `last_seen` timestamp
+  - Rate limiting: 50 requests per 15 minutes per IP (express-rate-limit)
+  - Codes expire after 30 days of no heartbeat
 - Depends on: `@workspace/db`, `@workspace/api-zod`
 - `pnpm --filter @workspace/api-server run dev` — run the dev server
 - `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
 - Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+
+### `artifacts/omainen-portaali` (`@workspace/omainen-portaali`)
+
+Family remote management web portal. Simple React+Vite SPA, no login required — uses device pair code.
+
+- **URL**: `/omainen-portaali/`
+- **View 1 (connect)**: Enter 6-digit device pair code → fetches device from API
+- **View 2 (settings)**: Toggle tutorMode, blockPayments, set homeUrl and fontSize. Saves to API.
+  - Shows "last seen" device status (formatted as "X min sitten")
+  - Changes sync to the Electron browser within 30 seconds (poll interval)
+- No backend logic in the portal — all API calls go to `/api/devices/:code/*`
 
 ### `lib/db` (`@workspace/db`)
 
@@ -83,7 +106,7 @@ Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client insta
 
 - `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
 - `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
+- `src/schema/devices.ts` — `devices` table: `device_id` (PK), `pair_code` (unique), `settings` (JSONB), `last_seen`, `created_at`, `active`
 - `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
 - Exports: `.` (pool, db, schema), `./schema` (schema only)
 

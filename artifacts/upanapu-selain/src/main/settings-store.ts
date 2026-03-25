@@ -6,6 +6,9 @@ export interface Settings {
   fontSize: 'normal' | 'large' | 'xlarge'
   firstRun: boolean
   blockPayments: boolean
+  deviceId: string | null
+  pairCode: string | null
+  syncEnabled: boolean
 }
 
 type Schema = {
@@ -14,6 +17,9 @@ type Schema = {
   fontSize: 'normal' | 'large' | 'xlarge'
   firstRun: boolean
   blockPayments: boolean
+  deviceId: string | null
+  pairCode: string | null
+  syncEnabled: boolean
 }
 
 const store = new Store<Schema>({
@@ -23,7 +29,10 @@ const store = new Store<Schema>({
     tutorMode: true,
     fontSize: 'large',
     firstRun: true,
-    blockPayments: false
+    blockPayments: false,
+    deviceId: null,
+    pairCode: null,
+    syncEnabled: false
   },
   schema: {
     homeUrl: {
@@ -46,6 +55,18 @@ const store = new Store<Schema>({
     blockPayments: {
       type: 'boolean',
       default: false
+    },
+    deviceId: {
+      type: ['string', 'null'],
+      default: null
+    },
+    pairCode: {
+      type: ['string', 'null'],
+      default: null
+    },
+    syncEnabled: {
+      type: 'boolean',
+      default: false
     }
   }
 })
@@ -56,16 +77,20 @@ export function getSettings(): Settings {
     tutorMode: store.get('tutorMode'),
     fontSize: store.get('fontSize') as Settings['fontSize'],
     firstRun: store.get('firstRun'),
-    blockPayments: store.get('blockPayments')
+    blockPayments: store.get('blockPayments'),
+    deviceId: store.get('deviceId') as string | null,
+    pairCode: store.get('pairCode') as string | null,
+    syncEnabled: store.get('syncEnabled')
   }
 }
 
-export function saveSettings(settings: Settings): void {
-  store.set({
-    homeUrl: settings.homeUrl,
-    tutorMode: settings.tutorMode,
-    fontSize: settings.fontSize,
-    firstRun: settings.firstRun,
-    blockPayments: settings.blockPayments
-  })
+export function saveSettings(settings: Partial<Settings>): void {
+  if (settings.homeUrl !== undefined) store.set('homeUrl', settings.homeUrl)
+  if (settings.tutorMode !== undefined) store.set('tutorMode', settings.tutorMode)
+  if (settings.fontSize !== undefined) store.set('fontSize', settings.fontSize)
+  if (settings.firstRun !== undefined) store.set('firstRun', settings.firstRun)
+  if (settings.blockPayments !== undefined) store.set('blockPayments', settings.blockPayments)
+  if (settings.deviceId !== undefined) store.set('deviceId', settings.deviceId)
+  if (settings.pairCode !== undefined) store.set('pairCode', settings.pairCode)
+  if (settings.syncEnabled !== undefined) store.set('syncEnabled', settings.syncEnabled)
 }

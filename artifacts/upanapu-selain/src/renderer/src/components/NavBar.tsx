@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent } from 'react'
-import { ChevronLeft, ChevronRight, Home, RotateCw, X, GraduationCap } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Home, RotateCw, X, GraduationCap, Link } from 'lucide-react'
 import logoUrl from '../assets/upanapu-logo.png'
 
 interface NavBarProps {
@@ -9,6 +9,7 @@ interface NavBarProps {
   canGoForward: boolean
   tutorMode: boolean
   warning: string | null
+  pairCode: string | null
   onDismissWarning: () => void
 }
 
@@ -88,7 +89,6 @@ function TutorBubble({ message, onClose }: { message: string; onClose: () => voi
         gap: 14,
       }}
     >
-      {/* Upward pointing triangle (speech bubble tail) */}
       <div aria-hidden="true" style={{
         position: 'absolute',
         top: -11,
@@ -101,7 +101,6 @@ function TutorBubble({ message, onClose }: { message: string; onClose: () => voi
         borderBottom: `10px solid ${borderColor}`,
       }} />
 
-      {/* Tutor avatar */}
       <div aria-hidden="true" style={{
         width: 44,
         height: 44,
@@ -117,7 +116,6 @@ function TutorBubble({ message, onClose }: { message: string; onClose: () => voi
         🎓
       </div>
 
-      {/* Message */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
           <span aria-hidden="true" style={{ fontSize: 18 }}>{emoji}</span>
@@ -136,7 +134,6 @@ function TutorBubble({ message, onClose }: { message: string; onClose: () => voi
         </p>
       </div>
 
-      {/* Close button */}
       <button
         onClick={onClose}
         title="Sulje varoitus"
@@ -164,6 +161,127 @@ function TutorBubble({ message, onClose }: { message: string; onClose: () => voi
   )
 }
 
+function DeviceCodeModal({ pairCode, onClose }: { pairCode: string | null; onClose: () => void }) {
+  const formatted = pairCode
+    ? `${pairCode.slice(0, 2)}-${pairCode.slice(2, 4)}-${pairCode.slice(4, 6)}`
+    : '——'
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Laitekoodi omaiselle"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.65)',
+      }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div style={{
+        background: '#1A2B38',
+        border: '2px solid rgba(8,102,255,0.5)',
+        borderRadius: 20,
+        padding: '36px 40px',
+        maxWidth: 460,
+        width: '90%',
+        boxShadow: '0 16px 64px rgba(0,0,0,0.7)',
+        position: 'relative',
+      }}>
+        <button
+          onClick={onClose}
+          aria-label="Sulje"
+          style={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            background: 'rgba(255,255,255,0.1)',
+            border: 'none',
+            borderRadius: 8,
+            color: '#FFFFFF',
+            width: 36,
+            height: 36,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <X size={18} aria-hidden="true" />
+        </button>
+
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <div aria-hidden="true" style={{ fontSize: 40, marginBottom: 8 }}>🔗</div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
+            Laitekoodi omaiselle
+          </h2>
+        </div>
+
+        <div style={{
+          background: 'rgba(8,102,255,0.15)',
+          border: '2px solid rgba(8,102,255,0.4)',
+          borderRadius: 14,
+          padding: '20px 24px',
+          textAlign: 'center',
+          marginBottom: 20,
+        }}>
+          <div style={{
+            fontSize: 40,
+            fontWeight: 900,
+            letterSpacing: '0.15em',
+            color: '#FFD700',
+            fontFamily: 'monospace',
+            userSelect: 'text',
+          }}>
+            {formatted}
+          </div>
+        </div>
+
+        <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6, margin: '0 0 12px' }}>
+          Anna tämä koodi omaisellesi. Hän voi sen avulla hallita selaimen asetuksia osoitteessa:
+        </p>
+        <p style={{
+          fontSize: 16,
+          fontWeight: 700,
+          color: '#0866FF',
+          margin: '0 0 20px',
+          textAlign: 'center',
+          wordBreak: 'break-all',
+        }}>
+          omainen.upanapu.com
+        </p>
+
+        {!pairCode && (
+          <p style={{ fontSize: 14, color: '#FF6B35', textAlign: 'center' }}>
+            Laitekoodi ladataan… Tarkista internet-yhteys.
+          </p>
+        )}
+
+        <button
+          onClick={onClose}
+          style={{
+            width: '100%',
+            padding: '14px',
+            background: '#0866FF',
+            border: 'none',
+            borderRadius: 10,
+            color: '#FFFFFF',
+            fontSize: 16,
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          Selvä, sulje
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function NavBar({
   currentUrl,
   isLoading,
@@ -171,10 +289,12 @@ export default function NavBar({
   canGoForward,
   tutorMode,
   warning,
+  pairCode,
   onDismissWarning,
 }: NavBarProps) {
   const [inputValue, setInputValue] = useState(currentUrl)
   const [inputFocused, setInputFocused] = useState(false)
+  const [showDeviceModal, setShowDeviceModal] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -226,184 +346,228 @@ export default function NavBar({
     : currentUrl.replace(/^https?:\/\//, '').replace(/\/$/, '') || inputValue
 
   return (
-    <div
-      style={{
-        height: 'var(--toolbar-height)',
-        background: 'linear-gradient(180deg, var(--color-primary-dark) 0%, var(--color-primary) 100%)',
-        borderBottom: '2px solid rgba(8,102,255,0.4)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '0 12px',
-        gap: 0,
-        position: 'relative',
-        flexShrink: 0,
-        WebkitAppRegion: 'drag',
-      } as React.CSSProperties}
-    >
+    <>
       <div
         style={{
+          height: 'var(--toolbar-height)',
+          background: 'linear-gradient(180deg, var(--color-primary-dark) 0%, var(--color-primary) 100%)',
+          borderBottom: '2px solid rgba(8,102,255,0.4)',
           display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          WebkitAppRegion: 'no-drag',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          padding: '0 12px',
+          gap: 0,
+          position: 'relative',
+          flexShrink: 0,
+          WebkitAppRegion: 'drag',
         } as React.CSSProperties}
       >
-        {/* Logo */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 4, flexShrink: 0 }}>
-          <a
-            href="https://www.upanapu.com"
-            onClick={e => { e.preventDefault(); window.electronAPI?.navigate('https://www.upanapu.com') }}
-            style={{ textDecoration: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-            title="Avaa upanapu.com"
-            aria-label="Upan Apu — avaa upanapu.com"
-          >
-            <img
-              src={logoUrl}
-              alt="Upan Apu"
-              style={{ height: 60, width: 'auto' }}
-            />
-          </a>
-        </div>
-
-        <div style={{ width: 1, height: 40, background: 'rgba(255,255,255,0.15)', margin: '0 4px', flexShrink: 0 }} />
-
-        {/* Back button */}
-        <NavButton
-          onClick={() => window.electronAPI?.goBack()}
-          disabled={!canGoBack}
-          title="Takaisin"
-          tutorHint="Edellinen"
-          tutorMode={tutorMode}
-          aria-label="Takaisin edelliselle sivulle"
-          icon={<ChevronLeft size={24} aria-hidden="true" />}
-        />
-
-        {/* Forward button */}
-        <NavButton
-          onClick={() => window.electronAPI?.goForward()}
-          disabled={!canGoForward}
-          title="Eteenpäin"
-          tutorHint="Seuraava"
-          tutorMode={tutorMode}
-          aria-label="Eteenpäin seuraavalle sivulle"
-          icon={<ChevronRight size={24} aria-hidden="true" />}
-        />
-
-        {/* Reload/Stop button */}
-        <NavButton
-          onClick={() => window.electronAPI?.reload()}
-          title={isLoading ? 'Lopeta lataus' : 'Lataa uudelleen'}
-          tutorHint={isLoading ? 'Lopeta' : 'Päivitä'}
-          tutorMode={tutorMode}
-          aria-label="Lataa sivu uudelleen"
-          icon={isLoading ? <X size={22} aria-hidden="true" /> : <RotateCw size={20} aria-hidden="true" />}
-        />
-
-        {/* Home button */}
-        <NavButton
-          onClick={() => window.electronAPI?.goHome()}
-          title="Kotisivu"
-          tutorHint="Kotisivu"
-          tutorMode={tutorMode}
-          aria-label="Mene kotisivulle"
-          icon={<Home size={22} aria-hidden="true" />}
-        />
-
-        {/* URL Bar */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <form onSubmit={handleNavigate} style={{ display: 'flex' }}>
-            <input
-              ref={inputRef}
-              type="text"
-              value={displayUrl}
-              onChange={e => setInputValue(e.target.value)}
-              onFocus={handleInputFocus}
-              onBlur={handleInputBlur}
-              onKeyDown={handleKeyDown}
-              placeholder="Kirjoita osoite tai hakusana…"
-              aria-label="Nettisivun osoite"
-              spellCheck={false}
-              autoCorrect="off"
-              autoCapitalize="off"
-              style={{
-                flex: 1,
-                height: 52,
-                borderRadius: 10,
-                border: inputFocused ? '2px solid #0866FF' : '2px solid rgba(255,255,255,0.15)',
-                background: inputFocused ? '#FFFFFF' : 'rgba(255,255,255,0.1)',
-                color: inputFocused ? '#1A2B38' : '#FFFFFF',
-                padding: '0 16px',
-                fontSize: 16,
-                fontFamily: 'inherit',
-                transition: 'border-color 0.15s, background 0.15s, color 0.15s',
-              }}
-            />
-          </form>
-          {tutorMode && (
-            <span className="tutor-hint" style={{ paddingLeft: 8 }}>
-              Kirjoita osoite (esim. google.fi) tai hakusana ja paina Enter
-            </span>
-          )}
-        </div>
-
-        <div style={{ width: 1, height: 40, background: 'rgba(255,255,255,0.15)', margin: '0 4px', flexShrink: 0 }} />
-
-        {/* Tutor mode indicator */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div
-            aria-label={tutorMode ? 'Opastus päällä' : 'Opastus pois'}
-            title={tutorMode ? 'Opastus päällä' : 'Opastus pois'}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 40,
-              height: 40,
-              borderRadius: 8,
-              background: tutorMode ? 'rgba(255,215,0,0.2)' : 'transparent',
-              color: tutorMode ? '#FFD700' : 'rgba(255,255,255,0.4)',
-            }}
-          >
-            <GraduationCap size={20} aria-hidden="true" />
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            WebkitAppRegion: 'no-drag',
+          } as React.CSSProperties}
+        >
+          {/* Logo */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 4, flexShrink: 0 }}>
+            <a
+              href="https://www.upanapu.com"
+              onClick={e => { e.preventDefault(); window.electronAPI?.navigate('https://www.upanapu.com') }}
+              style={{ textDecoration: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              title="Avaa upanapu.com"
+              aria-label="Upan Apu — avaa upanapu.com"
+            >
+              <img
+                src={logoUrl}
+                alt="Upan Apu"
+                style={{ height: 60, width: 'auto' }}
+              />
+            </a>
           </div>
-          {tutorMode && (
-            <span className="tutor-hint">Opastus</span>
-          )}
+
+          <div style={{ width: 1, height: 40, background: 'rgba(255,255,255,0.15)', margin: '0 4px', flexShrink: 0 }} />
+
+          {/* Back button */}
+          <NavButton
+            onClick={() => window.electronAPI?.goBack()}
+            disabled={!canGoBack}
+            title="Takaisin"
+            tutorHint="Edellinen"
+            tutorMode={tutorMode}
+            aria-label="Takaisin edelliselle sivulle"
+            icon={<ChevronLeft size={24} aria-hidden="true" />}
+          />
+
+          {/* Forward button */}
+          <NavButton
+            onClick={() => window.electronAPI?.goForward()}
+            disabled={!canGoForward}
+            title="Eteenpäin"
+            tutorHint="Seuraava"
+            tutorMode={tutorMode}
+            aria-label="Eteenpäin seuraavalle sivulle"
+            icon={<ChevronRight size={24} aria-hidden="true" />}
+          />
+
+          {/* Reload/Stop button */}
+          <NavButton
+            onClick={() => window.electronAPI?.reload()}
+            title={isLoading ? 'Lopeta lataus' : 'Lataa uudelleen'}
+            tutorHint={isLoading ? 'Lopeta' : 'Päivitä'}
+            tutorMode={tutorMode}
+            aria-label="Lataa sivu uudelleen"
+            icon={isLoading ? <X size={22} aria-hidden="true" /> : <RotateCw size={20} aria-hidden="true" />}
+          />
+
+          {/* Home button */}
+          <NavButton
+            onClick={() => window.electronAPI?.goHome()}
+            title="Kotisivu"
+            tutorHint="Kotisivu"
+            tutorMode={tutorMode}
+            aria-label="Mene kotisivulle"
+            icon={<Home size={22} aria-hidden="true" />}
+          />
+
+          {/* URL Bar */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <form onSubmit={handleNavigate} style={{ display: 'flex' }}>
+              <input
+                ref={inputRef}
+                type="text"
+                value={displayUrl}
+                onChange={e => setInputValue(e.target.value)}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
+                onKeyDown={handleKeyDown}
+                placeholder="Kirjoita osoite tai hakusana…"
+                aria-label="Nettisivun osoite"
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="off"
+                style={{
+                  flex: 1,
+                  height: 52,
+                  borderRadius: 10,
+                  border: inputFocused ? '2px solid #0866FF' : '2px solid rgba(255,255,255,0.15)',
+                  background: inputFocused ? '#FFFFFF' : 'rgba(255,255,255,0.1)',
+                  color: inputFocused ? '#1A2B38' : '#FFFFFF',
+                  padding: '0 16px',
+                  fontSize: 16,
+                  fontFamily: 'inherit',
+                  transition: 'border-color 0.15s, background 0.15s, color 0.15s',
+                }}
+              />
+            </form>
+            {tutorMode && (
+              <span className="tutor-hint" style={{ paddingLeft: 8 }}>
+                Kirjoita osoite (esim. google.fi) tai hakusana ja paina Enter
+              </span>
+            )}
+          </div>
+
+          <div style={{ width: 1, height: 40, background: 'rgba(255,255,255,0.15)', margin: '0 4px', flexShrink: 0 }} />
+
+          {/* Tutor mode indicator */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div
+              aria-label={tutorMode ? 'Opastus päällä' : 'Opastus pois'}
+              title={tutorMode ? 'Opastus päällä' : 'Opastus pois'}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 40,
+                height: 40,
+                borderRadius: 8,
+                background: tutorMode ? 'rgba(255,215,0,0.2)' : 'transparent',
+                color: tutorMode ? '#FFD700' : 'rgba(255,255,255,0.4)',
+              }}
+            >
+              <GraduationCap size={20} aria-hidden="true" />
+            </div>
+            {tutorMode && (
+              <span className="tutor-hint">Opastus</span>
+            )}
+          </div>
+
+          {/* Device code button */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <button
+              onClick={() => setShowDeviceModal(true)}
+              title="Näytä laitekoodi omaiselle"
+              aria-label="Näytä laitekoodi omaiselle"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 40,
+                height: 40,
+                borderRadius: 8,
+                background: 'rgba(255,255,255,0.08)',
+                border: 'none',
+                color: 'rgba(255,255,255,0.6)',
+                cursor: 'pointer',
+                transition: 'background 0.15s, color 0.15s',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.18)'
+                ;(e.currentTarget as HTMLButtonElement).style.color = '#FFFFFF'
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
+                ;(e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.6)'
+              }}
+            >
+              <Link size={18} aria-hidden="true" />
+            </button>
+            {tutorMode && (
+              <span className="tutor-hint">Koodi</span>
+            )}
+          </div>
         </div>
+
+        {/* Tutor speech bubble warning */}
+        {warning && (
+          <TutorBubble message={warning} onClose={onDismissWarning} />
+        )}
+
+        {/* Loading indicator */}
+        {isLoading && (
+          <div style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 3,
+            background: 'rgba(8,102,255,0.3)',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%',
+              background: '#0866FF',
+              animation: 'slide 1.5s infinite',
+              width: '40%',
+            }} />
+          </div>
+        )}
+
+        <style>{`
+          @keyframes slide {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(400%); }
+          }
+        `}</style>
       </div>
 
-      {/* Tutor speech bubble warning */}
-      {warning && (
-        <TutorBubble message={warning} onClose={onDismissWarning} />
+      {showDeviceModal && (
+        <DeviceCodeModal
+          pairCode={pairCode}
+          onClose={() => setShowDeviceModal(false)}
+        />
       )}
-
-      {/* Loading indicator */}
-      {isLoading && (
-        <div style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 3,
-          background: 'rgba(8,102,255,0.3)',
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            height: '100%',
-            background: '#0866FF',
-            animation: 'slide 1.5s infinite',
-            width: '40%',
-          }} />
-        </div>
-      )}
-
-      <style>{`
-        @keyframes slide {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(400%); }
-        }
-      `}</style>
-    </div>
+    </>
   )
 }

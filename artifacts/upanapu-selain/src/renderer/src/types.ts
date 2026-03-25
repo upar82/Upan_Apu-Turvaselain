@@ -4,6 +4,15 @@ export interface Settings {
   fontSize: 'normal' | 'large' | 'xlarge'
   firstRun: boolean
   blockPayments: boolean
+  deviceId: string | null
+  pairCode: string | null
+  syncEnabled: boolean
+}
+
+export interface DeviceStatus {
+  pairCode: string | null
+  syncEnabled: boolean
+  deviceId: string | null
 }
 
 export interface ElectronAPI {
@@ -20,6 +29,8 @@ export interface ElectronAPI {
   getSettings: () => Promise<Settings>
   updateSettings: (settings: Settings) => Promise<boolean>
   onSettingsUpdated: (callback: (settings: Settings) => void) => () => void
+  getDeviceStatus: () => Promise<DeviceStatus>
+  getPairCode: () => Promise<string | null>
 }
 
 declare global {

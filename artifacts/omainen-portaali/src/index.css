@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+:root {
+  --background: 213 50% 10%;
+  --foreground: 0 0% 100%;
+  --border: 213 30% 20%;
+  --card: 213 40% 13%;
+  --card-foreground: 0 0% 100%;
+  --card-border: 213 30% 18%;
+  --popover: 213 40% 13%;
+  --popover-foreground: 0 0% 100%;
+  --popover-border: 213 30% 18%;
+  --primary: 214 92% 52%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 213 35% 18%;
+  --secondary-foreground: 0 0% 90%;
+  --muted: 213 35% 16%;
+  --muted-foreground: 213 20% 60%;
+  --accent: 213 35% 18%;
+  --accent-foreground: 0 0% 95%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 213 30% 20%;
+  --ring: 214 92% 52%;
+  --radius: 0.75rem;
+  --app-font-sans: 'Inter', 'Segoe UI', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--app-font-sans);
+  background: #0f1e2b;
+  color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+input:focus {
+  outline: none;
+  border-color: #0866FF !important;
+}
+
+button:focus-visible {
+  outline: 2px solid #0866FF;
+  outline-offset: 2px;
+}

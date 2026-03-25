@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, WebContentsView, shell, nativeTheme, Menu } from 'electron'
 import path from 'path'
 import { getSettings, saveSettings, type Settings } from './settings-store'
+import { startSync, stopSync, getPairCode, setSettingsChangedCallback } from './device-sync'
 
 nativeTheme.themeSource = 'light'
 
@@ -127,7 +128,7 @@ function createWindow(): void {
       browserView.webContents.canGoBack(),
       browserView.webContents.canGoForward()
     )
-    mainWindow.webContents.send('settings:updated', settings)
+    mainWindow.webContents.send('settings:updated', getSettings())
   })
 }
 
@@ -245,7 +246,8 @@ ipcMain.handle('settings:get', (): Settings => {
 
 ipcMain.handle('settings:update', (_event, newSettings: Settings): boolean => {
   saveSettings(newSettings)
-  mainWindow?.webContents.send('settings:updated', newSettings)
+  const updated = getSettings()
+  mainWindow?.webContents.send('settings:updated', updated)
 
   if (!newSettings.firstRun) {
     updateBrowserViewBounds(false)
@@ -258,9 +260,29 @@ ipcMain.handle('settings:update', (_event, newSettings: Settings): boolean => {
   return true
 })
 
+ipcMain.handle('device:getPairCode', (): string | null => {
+  return getPairCode()
+})
+
+ipcMain.handle('device:getStatus', (): { pairCode: string | null; syncEnabled: boolean; deviceId: string | null } => {
+  const s = getSettings()
+  return { pairCode: s.pairCode, syncEnabled: s.syncEnabled, deviceId: s.deviceId }
+})
+
 app.whenReady().then(() => {
   buildMinimalMenu()
   createWindow()
+
+  setSettingsChangedCallback((newSettings: Settings) => {
+    mainWindow?.webContents.send('settings:updated', newSettings)
+    const current = browserView?.webContents.getURL()
+    const home = newSettings.homeUrl
+    if (current && current !== home && !current.startsWith('about:')) {
+      browserView?.webContents.loadURL(home)
+    }
+  })
+
+  startSync()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -270,6 +292,7 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
+  stopSync()
   if (process.platform !== 'darwin') {
     app.quit()
   }

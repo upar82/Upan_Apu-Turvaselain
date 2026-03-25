@@ -8,7 +8,10 @@ const DEFAULT_SETTINGS: Settings = {
   tutorMode: true,
   fontSize: 'large',
   firstRun: true,
-  blockPayments: false
+  blockPayments: false,
+  deviceId: null,
+  pairCode: null,
+  syncEnabled: false
 }
 
 export default function App() {
@@ -18,11 +21,19 @@ export default function App() {
   const [canGoForward, setCanGoForward] = useState(false)
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
   const [warning, setWarning] = useState<string | null>(null)
+  const [pairCode, setPairCode] = useState<string | null>(null)
 
   useEffect(() => {
     if (!window.electronAPI) return
 
-    window.electronAPI.getSettings().then(s => setSettings(s))
+    window.electronAPI.getSettings().then(s => {
+      setSettings(s)
+      if (s.pairCode) setPairCode(s.pairCode)
+    })
+
+    window.electronAPI.getDeviceStatus().then(status => {
+      if (status.pairCode) setPairCode(status.pairCode)
+    })
 
     const cleanups: Array<() => void> = []
 
@@ -32,7 +43,10 @@ export default function App() {
       setCanGoBack(back)
       setCanGoForward(fwd)
     }))
-    cleanups.push(window.electronAPI.onSettingsUpdated(s => setSettings(s)))
+    cleanups.push(window.electronAPI.onSettingsUpdated(s => {
+      setSettings(s)
+      if (s.pairCode) setPairCode(s.pairCode)
+    }))
     cleanups.push(window.electronAPI.onWarning(w => setWarning(w)))
 
     return () => cleanups.forEach(fn => fn())
@@ -63,6 +77,7 @@ export default function App() {
         canGoForward={canGoForward}
         tutorMode={settings.tutorMode}
         warning={warning}
+        pairCode={pairCode}
         onDismissWarning={handleDismissWarning}
       />
 
