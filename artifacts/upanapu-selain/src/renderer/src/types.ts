@@ -2,6 +2,8 @@ export interface Settings {
   homeUrl: string
   tutorMode: boolean
   fontSize: 'normal' | 'large' | 'xlarge'
+  firstRun: boolean
+  blockPayments: boolean
 }
 
 export interface ElectronAPI {
@@ -14,6 +16,7 @@ export interface ElectronAPI {
   onLoadingChange: (callback: (loading: boolean) => void) => () => void
   onCanNavigate: (callback: (canGoBack: boolean, canGoForward: boolean) => void) => () => void
   onTitleChange: (callback: (title: string) => void) => () => void
+  onWarning: (callback: (warning: string | null) => void) => () => void
   getSettings: () => Promise<Settings>
   updateSettings: (settings: Settings) => Promise<boolean>
   onSettingsUpdated: (callback: (settings: Settings) => void) => () => void

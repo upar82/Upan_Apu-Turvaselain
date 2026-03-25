@@ -32,6 +32,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('browser:titleChanged', listener)
   },
 
+  onWarning: (callback: (warning: string | null) => void) => {
+    const listener = (_: Electron.IpcRendererEvent, warning: string | null) => callback(warning)
+    ipcRenderer.on('browser:warning', listener)
+    return () => ipcRenderer.removeListener('browser:warning', listener)
+  },
+
   getSettings: (): Promise<Settings> => ipcRenderer.invoke('settings:get'),
   updateSettings: (settings: Settings): Promise<boolean> => ipcRenderer.invoke('settings:update', settings),
 

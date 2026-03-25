@@ -9,6 +9,33 @@ let browserView: WebContentsView | null = null
 
 const TOOLBAR_HEIGHT = 104
 
+const PAYMENT_KEYWORDS = [
+  'checkout', 'payment', 'maksa', 'tilaus', 'luottokortti',
+  'ostoskori', 'cart', 'shop', 'store', 'osta', 'paypal',
+  'stripe', 'klarna', 'maksut', 'verkkokauppa', 'buy', 'purchase',
+  'tilaa', 'billing', 'invoice'
+]
+
+function checkUrlForWarning(url: string, settings: Settings): string | null {
+  if (!url || url.startsWith('about:') || url.startsWith('chrome:')) return null
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol === 'http:') {
+      return 'Tämä sivu ei ole turvallinen! Yhteys ei ole salattu — älä kirjoita salasanoja tai henkilötietoja.'
+    }
+    if (settings.blockPayments) {
+      const urlLower = url.toLowerCase()
+      const isPaymentSite = PAYMENT_KEYWORDS.some(kw => urlLower.includes(kw))
+      if (isPaymentSite) {
+        return 'Tämä sivu vaikuttaa maksu- tai ostossivulta. Olet valinnut estää verkko-ostokset.'
+      }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 function createWindow(): void {
   const settings = getSettings()
 
@@ -36,8 +63,12 @@ function createWindow(): void {
   })
 
   mainWindow.contentView.addChildView(browserView)
-  updateBrowserViewBounds()
-  browserView.webContents.loadURL(settings.homeUrl)
+  updateBrowserViewBounds(settings.firstRun)
+
+  if (!settings.firstRun) {
+    browserView.webContents.loadURL(settings.homeUrl)
+  }
+
   setupBrowserViewEvents()
 
   if (process.env['ELECTRON_RENDERER_URL']) {
@@ -46,7 +77,10 @@ function createWindow(): void {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
   }
 
-  mainWindow.on('resize', updateBrowserViewBounds)
+  mainWindow.on('resize', () => {
+    const s = getSettings()
+    updateBrowserViewBounds(s.firstRun)
+  })
   mainWindow.on('closed', () => {
     mainWindow = null
     browserView = null
@@ -66,15 +100,19 @@ function createWindow(): void {
   })
 }
 
-function updateBrowserViewBounds(): void {
+function updateBrowserViewBounds(hidden = false): void {
   if (!mainWindow || !browserView) return
   const bounds = mainWindow.getContentBounds()
-  browserView.setBounds({
-    x: 0,
-    y: TOOLBAR_HEIGHT,
-    width: bounds.width,
-    height: Math.max(0, bounds.height - TOOLBAR_HEIGHT)
-  })
+  if (hidden) {
+    browserView.setBounds({ x: 0, y: bounds.height, width: bounds.width, height: 0 })
+  } else {
+    browserView.setBounds({
+      x: 0,
+      y: TOOLBAR_HEIGHT,
+      width: bounds.width,
+      height: Math.max(0, bounds.height - TOOLBAR_HEIGHT)
+    })
+  }
 }
 
 function setupBrowserViewEvents(): void {
@@ -83,11 +121,17 @@ function setupBrowserViewEvents(): void {
   browserView.webContents.on('did-navigate', (_event, url) => {
     mainWindow?.webContents.send('browser:urlChanged', url)
     updateNavigationState()
+    const settings = getSettings()
+    const warning = checkUrlForWarning(url, settings)
+    mainWindow?.webContents.send('browser:warning', warning)
   })
 
   browserView.webContents.on('did-navigate-in-page', (_event, url) => {
     mainWindow?.webContents.send('browser:urlChanged', url)
     updateNavigationState()
+    const settings = getSettings()
+    const warning = checkUrlForWarning(url, settings)
+    mainWindow?.webContents.send('browser:warning', warning)
   })
 
   browserView.webContents.on('did-start-loading', () => {
@@ -171,6 +215,15 @@ ipcMain.handle('settings:get', (): Settings => {
 ipcMain.handle('settings:update', (_event, newSettings: Settings): boolean => {
   saveSettings(newSettings)
   mainWindow?.webContents.send('settings:updated', newSettings)
+
+  if (!newSettings.firstRun) {
+    updateBrowserViewBounds(false)
+    const current = browserView?.webContents.getURL()
+    if (!current || current === 'about:blank' || current === '') {
+      browserView?.webContents.loadURL(newSettings.homeUrl)
+    }
+  }
+
   return true
 })
 

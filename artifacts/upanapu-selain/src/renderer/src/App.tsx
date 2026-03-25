@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import NavBar from './components/NavBar'
-import SettingsPage from './components/SettingsPage'
+import WelcomeScreen from './components/WelcomeScreen'
 import type { Settings } from './types'
-import './types'
 
 const DEFAULT_SETTINGS: Settings = {
   homeUrl: 'https://www.google.fi',
   tutorMode: true,
-  fontSize: 'large'
+  fontSize: 'large',
+  firstRun: true,
+  blockPayments: false
 }
 
 export default function App() {
@@ -16,7 +17,7 @@ export default function App() {
   const [canGoBack, setCanGoBack] = useState(false)
   const [canGoForward, setCanGoForward] = useState(false)
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
-  const [showSettings, setShowSettings] = useState(false)
+  const [warning, setWarning] = useState<string | null>(null)
 
   useEffect(() => {
     if (!window.electronAPI) return
@@ -32,14 +33,17 @@ export default function App() {
       setCanGoForward(fwd)
     }))
     cleanups.push(window.electronAPI.onSettingsUpdated(s => setSettings(s)))
+    cleanups.push(window.electronAPI.onWarning(w => setWarning(w)))
 
     return () => cleanups.forEach(fn => fn())
   }, [])
 
-  const handleSaveSettings = useCallback(async (newSettings: Settings) => {
-    await window.electronAPI?.updateSettings(newSettings)
-    setSettings(newSettings)
-    setShowSettings(false)
+  const handleWelcomeDone = useCallback((blockPayments: boolean) => {
+    setSettings(prev => ({ ...prev, firstRun: false, blockPayments }))
+  }, [])
+
+  const handleDismissWarning = useCallback(() => {
+    setWarning(null)
   }, [])
 
   const fontClass =
@@ -58,14 +62,14 @@ export default function App() {
         canGoBack={canGoBack}
         canGoForward={canGoForward}
         tutorMode={settings.tutorMode}
-        onOpenSettings={() => setShowSettings(true)}
+        warning={warning}
+        onDismissWarning={handleDismissWarning}
       />
 
-      {showSettings && (
-        <SettingsPage
+      {settings.firstRun && (
+        <WelcomeScreen
           settings={settings}
-          onSave={handleSaveSettings}
-          onClose={() => setShowSettings(false)}
+          onDone={handleWelcomeDone}
         />
       )}
     </div>

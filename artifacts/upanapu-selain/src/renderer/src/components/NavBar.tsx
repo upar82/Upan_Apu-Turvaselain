@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent } from 'react'
-import { ChevronLeft, ChevronRight, Home, RotateCw, Settings, X, GraduationCap } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Home, RotateCw, X, GraduationCap } from 'lucide-react'
 
 interface NavBarProps {
   currentUrl: string
@@ -7,7 +7,8 @@ interface NavBarProps {
   canGoBack: boolean
   canGoForward: boolean
   tutorMode: boolean
-  onOpenSettings: () => void
+  warning: string | null
+  onDismissWarning: () => void
 }
 
 interface NavButtonProps {
@@ -58,23 +59,140 @@ function NavButton({ onClick, disabled, title, tutorHint, tutorMode, icon, 'aria
   )
 }
 
+function TutorBubble({ message, onClose }: { message: string; onClose: () => void }) {
+  const isPayment = message.includes('maksu') || message.includes('ostossivulta')
+  const borderColor = isPayment ? '#FFD700' : '#FF6B35'
+  const bgColor = isPayment ? 'rgba(255,215,0,0.12)' : 'rgba(255,107,53,0.12)'
+  const emoji = isPayment ? '🛡️' : '⚠️'
+
+  return (
+    <div
+      role="alert"
+      aria-live="assertive"
+      style={{
+        position: 'absolute',
+        top: 'calc(100% + 10px)',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 300,
+        background: '#1A2B38',
+        border: `2px solid ${borderColor}`,
+        borderRadius: 16,
+        padding: '16px 20px',
+        minWidth: 340,
+        maxWidth: 520,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 14,
+      }}
+    >
+      {/* Upward pointing triangle (speech bubble tail) */}
+      <div style={{
+        position: 'absolute',
+        top: -11,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 0,
+        height: 0,
+        borderLeft: '10px solid transparent',
+        borderRight: '10px solid transparent',
+        borderBottom: `10px solid ${borderColor}`,
+      }} />
+
+      {/* Tutor avatar */}
+      <div style={{
+        width: 44,
+        height: 44,
+        borderRadius: '50%',
+        background: 'rgba(255,215,0,0.15)',
+        border: '2px solid #FFD700',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 22,
+        flexShrink: 0,
+      }}>
+        🎓
+      </div>
+
+      {/* Message */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+          <span style={{ fontSize: 18 }}>{emoji}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#FFD700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Tutor huomauttaa
+          </span>
+        </div>
+        <p style={{
+          fontSize: 16,
+          color: '#FFFFFF',
+          lineHeight: 1.5,
+          margin: 0,
+          fontWeight: 500,
+        }}>
+          {message}
+        </p>
+      </div>
+
+      {/* Close button */}
+      <button
+        onClick={onClose}
+        title="Sulje varoitus"
+        aria-label="Sulje varoitus"
+        style={{
+          background: 'rgba(255,255,255,0.1)',
+          border: 'none',
+          borderRadius: 8,
+          color: '#FFFFFF',
+          width: 32,
+          height: 32,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+        onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.2)')}
+        onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.1)')}
+      >
+        <X size={16} />
+      </button>
+    </div>
+  )
+}
+
 export default function NavBar({
   currentUrl,
   isLoading,
   canGoBack,
   canGoForward,
   tutorMode,
-  onOpenSettings
+  warning,
+  onDismissWarning,
 }: NavBarProps) {
   const [inputValue, setInputValue] = useState(currentUrl)
   const [inputFocused, setInputFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!inputFocused) {
       setInputValue(currentUrl)
     }
   }, [currentUrl, inputFocused])
+
+  useEffect(() => {
+    if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current)
+    if (warning) {
+      dismissTimerRef.current = setTimeout(() => {
+        onDismissWarning()
+      }, 10000)
+    }
+    return () => {
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current)
+    }
+  }, [warning, onDismissWarning])
 
   function handleNavigate(e?: FormEvent) {
     e?.preventDefault()
@@ -258,17 +376,12 @@ export default function NavBar({
             <span className="tutor-hint">Opastus</span>
           )}
         </div>
-
-        {/* Settings button */}
-        <NavButton
-          onClick={onOpenSettings}
-          title="Asetukset"
-          tutorHint="Asetukset"
-          tutorMode={tutorMode}
-          aria-label="Avaa asetukset"
-          icon={<Settings size={20} />}
-        />
       </div>
+
+      {/* Tutor speech bubble warning */}
+      {warning && (
+        <TutorBubble message={warning} onClose={onDismissWarning} />
+      )}
 
       {/* Loading indicator */}
       {isLoading && (
