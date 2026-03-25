@@ -1,0 +1,127 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "Open Sans",
+      "role": "body"
+    },
+    {
+      "family": "Roboto",
+      "role": "unknown"
+    },
+    {
+      "family": "Segoe UI",
+      "role": "unknown"
+    },
+    {
+      "family": "Ubuntu",
+      "role": "unknown"
+    },
+    {
+      "family": "Cantarell",
+      "role": "unknown"
+    }
+  ],
+  "colors": {
+    "primary": "#2E4453",
+    "accent": "#0866FF",
+    "background": "#FFFFFF",
+    "textPrimary": "#000000",
+    "link": "#0866FF"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "Open Sans",
+      "heading": "Open Sans"
+    },
+    "fontStacks": {
+      "heading": [
+        "Open Sans"
+      ],
+      "body": [
+        "Open Sans"
+      ],
+      "paragraph": [
+        "Open Sans"
+      ]
+    },
+    "fontSizes": {
+      "h1": "18px",
+      "h2": "18px",
+      "body": "16px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 4,
+    "borderRadius": "4px"
+  },
+  "components": {
+    "buttonPrimary": {
+      "background": "#0866FF",
+      "textColor": "#FFFFFF",
+      "borderRadius": "0px",
+      "borderRadiusCorners": {
+        "topLeft": "0px",
+        "topRight": "0px",
+        "bottomRight": "0px",
+        "bottomLeft": "0px"
+      },
+      "shadow": "none"
+    },
+    "buttonSecondary": {
+      "background": "#E9E9E9",
+      "textColor": "#2C3338",
+      "borderRadius": "0px",
+      "borderRadiusCorners": {
+        "topLeft": "0px",
+        "topRight": "0px",
+        "bottomRight": "0px",
+        "bottomLeft": "0px"
+      },
+      "shadow": "none"
+    }
+  },
+  "images": {
+    "logo": null,
+    "favicon": "https://upanapu.com/wp-content/uploads/2023/05/cropped-upan-apu-4.webp?w=32",
+    "ogImage": "https://upanapu.com/wp-content/uploads/2023/05/cropped-upan-apu-4.webp?w=200"
+  },
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": 1,
+      "text": "Jaa Facebookissa(Avautuu uudessa ikkunassa)\n\t\t\t\tFacebook",
+      "reasoning": "Button #1 has a vibrant blue color (#0866FF) which is often used for primary CTAs. It stands out as the most prominent and action-oriented button, suitable for a primary call-to-action."
+    },
+    "secondary": {
+      "index": 3,
+      "text": "Email a link to a friend(Avautuu uudessa ikkunassa)\n\t\t\t\tSähköpostitse",
+      "reasoning": "Button #3 has a light background color (#E9E9E9), making it less prominent than the primary button. It serves as a good secondary option due to its subtle appearance."
+    },
+    "confidence": 0.95
+  },
+  "personality": {
+    "tone": "professional",
+    "energy": "medium",
+    "targetAudience": "individuals needing tech support"
+  },
+  "designSystem": {
+    "framework": "custom",
+    "componentLibrary": ""
+  },
+  "confidence": {
+    "buttons": 0.95,
+    "colors": 0.9,
+    "overall": 0.925
+  },
+  "__llm_metadata": {
+    "logoSelection": {
+      "llmCalled": false,
+      "llmSucceeded": false,
+      "finalSource": "none"
+    },
+    "buttonClassification": {
+      "llmCalled": true,
+      "llmSucceeded": true
+    }
+  }
+}
