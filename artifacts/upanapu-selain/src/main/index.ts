@@ -107,12 +107,15 @@ function setupBrowserViewEvents(): void {
   })
 
   browserView.webContents.setWindowOpenHandler(({ url }) => {
-    browserView?.webContents.loadURL(url)
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      browserView?.webContents.loadURL(url)
+    }
     return { action: 'deny' }
   })
 
-  browserView.webContents.on('will-navigate', (_event, url) => {
+  browserView.webContents.on('will-navigate', (event, url) => {
     if (url.startsWith('http://') || url.startsWith('https://')) return
+    event.preventDefault()
     if (url.startsWith('file://')) {
       shell.openExternal(url)
     }
