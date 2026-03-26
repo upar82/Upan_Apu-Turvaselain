@@ -9,7 +9,11 @@ interface WelcomeScreenProps {
 }
 
 function formatPairCode(code: string): string {
-  return `${code.slice(0, 4)}-${code.slice(4, 8)}-${code.slice(8, 12)}`
+  if (code.length === 12) {
+    return `${code.slice(0, 4)}-${code.slice(4, 8)}-${code.slice(8, 12)}`
+  }
+  // Fallback for unexpected lengths — show raw code
+  return code
 }
 
 export default function WelcomeScreen({ settings, pairCode, onDone }: WelcomeScreenProps) {
