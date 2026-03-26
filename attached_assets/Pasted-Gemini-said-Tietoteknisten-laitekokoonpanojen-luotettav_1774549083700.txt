@@ -1,0 +1,32 @@
+Gemini said
+Tietoteknisten laitekokoonpanojen luotettavuudesta ja turvallisuudesta ei ole olemassa satunnaistettuja vertaiskontrolloituja tutkimuksia (RCT) tai lääketieteellisen tason meta-analyyseja. Laitteistojen ja ohjelmistojen arviointi perustuu teollisuuden yleisiin käytäntöihin, laitevalmistajien vikaantumistilastoihin (MTBF, Mean Time Between Failures) sekä käyttöjärjestelmäarkkitehtuurien tunnettuihin tietoturvaominaisuuksiin. Seuraava suositus nojaa näihin teknisiin faktoihin ja pyrkimykseen minimoida laitteiston ja käyttäjän virheiden absoluuttinen riski.
+
+1. Laitteisto: Käytetty yritysluokan Mini-PC vs. Raspberry Pi
+Tavoitteena on halpa, turvallinen ja täysin huoltovapaa laite. Netistä löytyy tähän tyypillisesti kaksi lähestymistapaa, joita vertailtaessa on olennaista erottaa todellinen luotettavuus harrastuneisuudesta.
+
+Vaihtoehto A: Käytetty yritysluokan Mini-PC (Suositeltu)
+
+Esimerkkejä Suomen markkinoilta: Teraset myy tällä hetkellä HP ProDesk 600 G3 Mini -tietokoneita (Intel Core i5, 8 Gt RAM, 128 Gt SSD) hintaan 159 €. Vastaavia (Lenovo ThinkCentre Tiny, Dell OptiPlex Micro) löytyy myös muilta käytettyjen koneiden myyjiltä (esim. Taitonetti) 150–200 € hintaluokassa.
+
+Hyödyt: Suunniteltu jatkuvaan yrityskäyttöön. Sisältää valmiina virtalähteen, kestävän kotelon ja luotettavan x86_64-arkkitehtuurin, joka on täysin yhteensopiva standardien Linux-jakelujen kanssa.
+
+Riskit: Laitteet ovat käytettyjä, joten yksittäisen laitteen kohdalla on olemassa satunnainen komponenttivian riski (erityisesti tuuletin).
+
+Vaihtoehto B: Yhden piirilevyn tietokone (Raspberry Pi 5)
+
+Hinta: Raspberry Pi 5 -kortti maksaa noin 70–135 € (RAM-määrästä riippuen). Kun tähän lisätään välttämättömät osat (kotelo, virtalähde, jäähdytys, luotettava tallennustila kuten NVMe-laajennus), kokonaishinta nousee nopeasti 150–200 € tasolle.
+
+Riskit: SD-korttien käyttöön käyttöjärjestelmän pääasiallisena tallennusmediana liittyy erittäin korkea absoluuttinen riski tiedostojärjestelmän korruptoitumiselle äkillisissä virtakatkoissa. Lisäksi ARM-arkkitehtuuri voi marginaalisesti hankaloittaa joidenkin suljettujen selainliitännäisten (esim. tietyt DRM-suojatut videopalvelut) toimintaa Chromiumissa.
+
+Johtopäätös laitteistosta: Vaikka Raspberry Pi voi tuntua "halvalta" vaihtoehdolta, sen todellinen kustannus (TCO) luotettavaksi rakennettuna on samaa luokkaa käytetyn yrityskoneen kanssa. Käytetty Mini-PC tarjoaa merkittävästi korkeamman vikasietoisuuden ja suorituskyvyn samalla hinnalla.
+
+2. Ohjelmisto ja Kiosk-tila
+Käyttöjärjestelmän tulee olla riisuttu kaikesta ylimääräisestä, jotta vältetään käyttäjän eksyminen valikoihin ja minimoidaan hyökkäyspinta-ala.
+
+Käyttöjärjestelmä: Debian Minimal tai Ubuntu Server. Ei työpöytäympäristöä (KDE, GNOME tai Windows), sillä ne ovat tähän tarkoitukseen raskaita ja sisältävät taustaprosesseja, jotka voivat keskeyttää selaimen toiminnan (esim. ilmoitukset).
+
+Display Server (Näyttöpalvelin): Wayland. Perinteinen X11-arkkitehtuuri on tietoturvaltaan heikompi, sillä se sallii oletuksena sovellusten lukea toistensa syötteitä (keylogger-riski). Wayland eristää sovellukset toisistaan graafisella tasolla.
+
+Ikkunointiohjelmisto: cage. Se on Wayland-pohjainen "kioski"-komposiittori, joka osaa näyttää tasan yhden ohjelman pakotettuna koko ruudulle ilman mitään ikkunoiden reunoja tai sulkemispainikkeita.
+
+Selain: Chromium-pohjainen selaimesi, joka käynnistetään automaattisesti järjestelmäpalveluna (systemd) parametreilla, jotka estävät sen sulkemisen ja pakottavat sen koko ruudulle (esim. --kiosk).
