@@ -20,7 +20,7 @@ function toWsUrl(apiBaseUrl: string): string {
       url.hostname === '[::1]'
     if (!isLocal) {
       throw new Error(
-        `Insecure WebSocket (ws://) is not permitted for non-local hosts. Use an https:// API URL instead.`
+        `Insecure WebSocket (ws://) is not permitted for non-local hosts. Use an https:// API URL instead.` // nosec: literal string in error message, not a WebSocket URL
       )
     }
     return `ws://${url.host}${url.pathname.replace(/\/$/, '')}/ws` // nosec: ws:// is safe here — branch is only reachable for localhost/127.0.0.1/[::1]
