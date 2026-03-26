@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, WebContentsView, shell, nativeTheme, Menu,
 import path from 'path'
 import { getSettings, saveSettings, type Settings } from './settings-store'
 import { registerDevice, doRegister, startSync, stopSync, getPairCode, setSettingsChangedCallback, setMessageReceivedCallback, setOtpCallback, setRegisterErrorCallback, reportUrl, deleteMessage } from './device-sync'
+import { injectCookieConsent } from './cookie-consent'
 
 nativeTheme.themeSource = 'light'
 
@@ -195,6 +196,12 @@ function setupBrowserViewEvents(): void {
   browserView.webContents.on('did-stop-loading', () => {
     mainWindow?.webContents.send('browser:loadingChanged', false)
     updateNavigationState()
+  })
+
+  browserView.webContents.on('did-finish-load', () => {
+    const url = browserView?.webContents.getURL() ?? ''
+    const settings = getSettings()
+    injectCookieConsent(browserView!.webContents, url, settings)
   })
 
   browserView.webContents.on('page-title-updated', (_event, title) => {
