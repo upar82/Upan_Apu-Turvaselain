@@ -88,13 +88,13 @@ export default function App() {
         canGoForward={canGoForward}
         tutorMode={settings.tutorMode}
         warning={warning}
-        pairCode={pairCode}
         onDismissWarning={handleDismissWarning}
       />
 
       {settings.firstRun && (
         <WelcomeScreen
           settings={settings}
+          pairCode={pairCode}
           onDone={handleWelcomeDone}
         />
       )}

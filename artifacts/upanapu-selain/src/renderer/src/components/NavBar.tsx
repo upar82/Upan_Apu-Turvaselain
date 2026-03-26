@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent } from 'react'
-import { ChevronLeft, ChevronRight, Home, RotateCw, X, GraduationCap, Link } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Home, RotateCw, X, GraduationCap } from 'lucide-react'
 import logoUrl from '../assets/upanapu-logo.png'
 
 interface NavBarProps {
@@ -9,7 +9,6 @@ interface NavBarProps {
   canGoForward: boolean
   tutorMode: boolean
   warning: string | null
-  pairCode: string | null
   onDismissWarning: () => void
 }
 
@@ -161,127 +160,6 @@ function TutorBubble({ message, onClose }: { message: string; onClose: () => voi
   )
 }
 
-function DeviceCodeModal({ pairCode, onClose }: { pairCode: string | null; onClose: () => void }) {
-  const formatted = pairCode
-    ? `${pairCode.slice(0, 2)}-${pairCode.slice(2, 4)}-${pairCode.slice(4, 6)}`
-    : '——'
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Laitekoodi omaiselle"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(0,0,0,0.65)',
-      }}
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div style={{
-        background: '#1A2B38',
-        border: '2px solid rgba(8,102,255,0.5)',
-        borderRadius: 20,
-        padding: '36px 40px',
-        maxWidth: 460,
-        width: '90%',
-        boxShadow: '0 16px 64px rgba(0,0,0,0.7)',
-        position: 'relative',
-      }}>
-        <button
-          onClick={onClose}
-          aria-label="Sulje"
-          style={{
-            position: 'absolute',
-            top: 16,
-            right: 16,
-            background: 'rgba(255,255,255,0.1)',
-            border: 'none',
-            borderRadius: 8,
-            color: '#FFFFFF',
-            width: 36,
-            height: 36,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <X size={18} aria-hidden="true" />
-        </button>
-
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div aria-hidden="true" style={{ fontSize: 40, marginBottom: 8 }}>🔗</div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
-            Laitekoodi omaiselle
-          </h2>
-        </div>
-
-        <div style={{
-          background: 'rgba(8,102,255,0.15)',
-          border: '2px solid rgba(8,102,255,0.4)',
-          borderRadius: 14,
-          padding: '20px 24px',
-          textAlign: 'center',
-          marginBottom: 20,
-        }}>
-          <div style={{
-            fontSize: 40,
-            fontWeight: 900,
-            letterSpacing: '0.15em',
-            color: '#FFD700',
-            fontFamily: 'monospace',
-            userSelect: 'text',
-          }}>
-            {formatted}
-          </div>
-        </div>
-
-        <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6, margin: '0 0 12px' }}>
-          Anna tämä koodi omaisellesi. Hän voi sen avulla hallita selaimen asetuksia osoitteessa:
-        </p>
-        <p style={{
-          fontSize: 16,
-          fontWeight: 700,
-          color: '#0866FF',
-          margin: '0 0 20px',
-          textAlign: 'center',
-          wordBreak: 'break-all',
-        }}>
-          omainen.upanapu.com
-        </p>
-
-        {!pairCode && (
-          <p style={{ fontSize: 14, color: '#FF6B35', textAlign: 'center' }}>
-            Laitekoodi ladataan… Tarkista internet-yhteys.
-          </p>
-        )}
-
-        <button
-          onClick={onClose}
-          style={{
-            width: '100%',
-            padding: '14px',
-            background: '#0866FF',
-            border: 'none',
-            borderRadius: 10,
-            color: '#FFFFFF',
-            fontSize: 16,
-            fontWeight: 700,
-            cursor: 'pointer',
-          }}
-        >
-          Selvä, sulje
-        </button>
-      </div>
-    </div>
-  )
-}
-
 export default function NavBar({
   currentUrl,
   isLoading,
@@ -289,12 +167,10 @@ export default function NavBar({
   canGoForward,
   tutorMode,
   warning,
-  pairCode,
   onDismissWarning,
 }: NavBarProps) {
   const [inputValue, setInputValue] = useState(currentUrl)
   const [inputFocused, setInputFocused] = useState(false)
-  const [showDeviceModal, setShowDeviceModal] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -493,41 +369,6 @@ export default function NavBar({
             )}
           </div>
 
-          {/* Device code button */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <button
-              onClick={() => setShowDeviceModal(true)}
-              title="Näytä laitekoodi omaiselle"
-              aria-label="Näytä laitekoodi omaiselle"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                height: 40,
-                padding: '0 10px',
-                borderRadius: 8,
-                background: 'rgba(255,255,255,0.08)',
-                border: 'none',
-                color: 'rgba(255,255,255,0.7)',
-                cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 600,
-                transition: 'background 0.15s, color 0.15s',
-                whiteSpace: 'nowrap',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.18)'
-                ;(e.currentTarget as HTMLButtonElement).style.color = '#FFFFFF'
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
-                ;(e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.7)'
-              }}
-            >
-              <Link size={15} aria-hidden="true" />
-              Laitekoodi
-            </button>
-          </div>
         </div>
 
         {/* Tutor speech bubble warning */}
@@ -563,12 +404,6 @@ export default function NavBar({
         `}</style>
       </div>
 
-      {showDeviceModal && (
-        <DeviceCodeModal
-          pairCode={pairCode}
-          onClose={() => setShowDeviceModal(false)}
-        />
-      )}
     </>
   )
 }

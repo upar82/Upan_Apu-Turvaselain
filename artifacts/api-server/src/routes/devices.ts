@@ -34,9 +34,15 @@ function generateDeviceId(): string {
   return randomBytes(16).toString("hex");
 }
 
+const PAIR_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
 function generatePairCode(): string {
-  const digits = randomBytes(3).readUIntBE(0, 3) % 1000000;
-  return digits.toString().padStart(6, "0");
+  const bytes = randomBytes(12);
+  let code = "";
+  for (let i = 0; i < 12; i++) {
+    code += PAIR_CODE_ALPHABET[bytes[i] % PAIR_CODE_ALPHABET.length];
+  }
+  return code;
 }
 
 function isCodeExpired(lastSeen: Date): boolean {

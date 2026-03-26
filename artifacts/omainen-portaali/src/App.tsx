@@ -39,10 +39,10 @@ function formatLastSeen(isoDate: string): string {
 }
 
 function formatCode(raw: string): string {
-  const digits = raw.replace(/\D/g, "").slice(0, 6);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 4) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
+  const chars = raw.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 12);
+  if (chars.length <= 4) return chars;
+  if (chars.length <= 8) return `${chars.slice(0, 4)}-${chars.slice(4)}`;
+  return `${chars.slice(0, 4)}-${chars.slice(4, 8)}-${chars.slice(8)}`;
 }
 
 function shortenUrl(url: string): string {
@@ -93,8 +93,8 @@ export default function App() {
       return;
     }
     refreshTimerRef.current = setInterval(() => {
-      const digits = sessionStorage.getItem("upanapu_code") ?? "";
-      if (digits.length === 6) refreshActivity(digits);
+      const code = sessionStorage.getItem("upanapu_code") ?? "";
+      if (code.length === 12) refreshActivity(code);
     }, 30_000);
     return () => {
       if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
@@ -113,9 +113,9 @@ export default function App() {
   }
 
   async function handleConnect(code?: string) {
-    const digits = (code ?? rawCode).replace(/\D/g, "");
-    if (digits.length !== 6) {
-      setError("Syötä 6-numeroinen laitekoodi.");
+    const digits = (code ?? rawCode).replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    if (digits.length !== 12) {
+      setError("Syötä 12-merkkinen laitekoodi (muotoa XXXX-XXXX-XXXX).");
       return;
     }
 
@@ -157,7 +157,7 @@ export default function App() {
 
   async function handleSave() {
     if (!deviceInfo) return;
-    const digits = rawCode.replace(/\D/g, "");
+    const digits = rawCode;
 
     setSaving(true);
     setSaveSuccess(false);
@@ -187,7 +187,7 @@ export default function App() {
 
   async function handleSendMessage() {
     if (!messageText.trim() || messageSending) return;
-    const digits = rawCode.replace(/\D/g, "");
+    const digits = rawCode;
 
     setMessageSending(true);
     setMessageSent(false);
@@ -228,9 +228,9 @@ export default function App() {
   }
 
   function handleCodeInput(value: string) {
-    const digits = value.replace(/\D/g, "").slice(0, 6);
-    setRawCode(digits);
-    setDisplayCode(formatCode(digits));
+    const chars = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 12);
+    setRawCode(chars);
+    setDisplayCode(formatCode(chars));
     setError(null);
   }
 
@@ -263,8 +263,7 @@ export default function App() {
               Yhdistä laitteeseen
             </h2>
             <p style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", marginBottom: 24, lineHeight: 1.6 }}>
-              Pyydä läheistäsi avaamaan Upan Apu -selain ja painamaan Laitekoodi-painiketta
-              työkalupalkissa. Syötä näytölle ilmestyvä 6-numeroinen laitekoodi alle.
+              Syötä läheisesi Upan Apu -selaimen asennuksen yhteydessä saatu 12-merkkinen laitekoodi alle.
             </p>
 
             <label
@@ -276,8 +275,7 @@ export default function App() {
             <input
               id="code-input"
               type="text"
-              inputMode="numeric"
-              placeholder="00-00-00"
+              placeholder="XXXX-XXXX-XXXX"
               value={displayCode}
               onChange={e => handleCodeInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleConnect()}
@@ -308,18 +306,18 @@ export default function App() {
 
             <button
               onClick={() => handleConnect()}
-              disabled={loading || rawCode.length !== 6}
+              disabled={loading || rawCode.length !== 12}
               style={{
                 width: "100%",
                 padding: "16px",
                 marginTop: 8,
-                background: rawCode.length === 6 && !loading ? "#0866FF" : "rgba(255,255,255,0.1)",
+                background: rawCode.length === 12 && !loading ? "#0866FF" : "rgba(255,255,255,0.1)",
                 border: "none",
                 borderRadius: 12,
-                color: rawCode.length === 6 && !loading ? "#FFFFFF" : "rgba(255,255,255,0.35)",
+                color: rawCode.length === 12 && !loading ? "#FFFFFF" : "rgba(255,255,255,0.35)",
                 fontSize: 16,
                 fontWeight: 700,
-                cursor: rawCode.length === 6 && !loading ? "pointer" : "not-allowed",
+                cursor: rawCode.length === 12 && !loading ? "pointer" : "not-allowed",
                 transition: "background 0.2s",
               }}
             >
