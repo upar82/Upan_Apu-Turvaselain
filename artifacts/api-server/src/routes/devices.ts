@@ -93,7 +93,7 @@ router.post("/devices/register", registerLimiter, async (req, res) => {
 
 router.get("/devices/:code/settings", settingsLimiter, async (req, res) => {
   try {
-    const { code } = req.params;
+    const code = req.params["code"] as string;
     const rows = await db
       .select()
       .from(devicesTable)
@@ -125,7 +125,7 @@ router.get("/devices/:code/settings", settingsLimiter, async (req, res) => {
 
 router.put("/devices/:code/settings", settingsLimiter, async (req, res) => {
   try {
-    const { code } = req.params;
+    const code = req.params["code"] as string;
     const rawSettings = req.body?.settings;
 
     const parsed = deviceSettingsSchema.safeParse(rawSettings);
@@ -165,7 +165,7 @@ router.put("/devices/:code/settings", settingsLimiter, async (req, res) => {
 
 router.post("/devices/:code/heartbeat", settingsLimiter, async (req, res) => {
   try {
-    const { code } = req.params;
+    const code = req.params["code"] as string;
 
     const result = await db
       .update(devicesTable)
@@ -186,7 +186,7 @@ router.post("/devices/:code/heartbeat", settingsLimiter, async (req, res) => {
 
 router.post("/devices/:code/navigate", settingsLimiter, async (req, res) => {
   try {
-    const { code } = req.params;
+    const code = req.params["code"] as string;
     const url = req.body?.url as string | undefined;
     const title = req.body?.title as string | undefined;
 
@@ -222,7 +222,7 @@ router.post("/devices/:code/navigate", settingsLimiter, async (req, res) => {
 
 router.get("/devices/:code/message", settingsLimiter, async (req, res) => {
   try {
-    const { code } = req.params;
+    const code = req.params["code"] as string;
 
     const rows = await db
       .select({ pendingMessage: devicesTable.pendingMessage })
@@ -242,7 +242,7 @@ router.get("/devices/:code/message", settingsLimiter, async (req, res) => {
 
 router.put("/devices/:code/message", settingsLimiter, async (req, res) => {
   try {
-    const { code } = req.params;
+    const code = req.params["code"] as string;
     const message = req.body?.message as string | null | undefined;
 
     if (message !== null && message !== undefined && typeof message !== "string") {
@@ -278,7 +278,7 @@ router.put("/devices/:code/message", settingsLimiter, async (req, res) => {
 
 router.delete("/devices/:code/message", settingsLimiter, async (req, res) => {
   try {
-    const { code } = req.params;
+    const code = req.params["code"] as string;
 
     const result = await db
       .update(devicesTable)
