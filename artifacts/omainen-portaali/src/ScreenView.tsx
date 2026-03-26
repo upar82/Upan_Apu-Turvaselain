@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useScreenShare } from "./hooks/useScreenShare";
 
 interface ScreenViewProps {
@@ -6,15 +6,39 @@ interface ScreenViewProps {
   onClose: () => void;
 }
 
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 2.0;
+const ZOOM_STEP = 0.1;
+
 export function ScreenView({ pairCode, onClose }: ScreenViewProps) {
   const { stream, connected, error } = useScreenShare(pairCode, true);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [zoom, setZoom] = useState(1.0);
 
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
     }
   }, [stream]);
+
+  function zoomIn() {
+    setZoom((prev) => Math.min(ZOOM_MAX, Math.round((prev + ZOOM_STEP) * 10) / 10));
+  }
+
+  function zoomOut() {
+    setZoom((prev) => Math.max(ZOOM_MIN, Math.round((prev - ZOOM_STEP) * 10) / 10));
+  }
+
+  const btnStyle: React.CSSProperties = {
+    background: "rgba(255,255,255,0.1)",
+    border: "1px solid rgba(255,255,255,0.15)",
+    borderRadius: 8,
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: 600,
+    padding: "6px 14px",
+    cursor: "pointer",
+  };
 
   return (
     <div style={{
@@ -62,39 +86,74 @@ export function ScreenView({ pairCode, onClose }: ScreenViewProps) {
             </span>
           )}
         </div>
-        <button
-          onClick={onClose}
-          aria-label="Lopeta katselu"
-          style={{
-            background: "rgba(255,255,255,0.1)",
-            border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 8,
-            color: "#FFFFFF",
+
+        {/* Zoom controls + close button */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            onClick={zoomOut}
+            aria-label="Loitonna"
+            disabled={zoom <= ZOOM_MIN}
+            style={{
+              ...btnStyle,
+              padding: "6px 12px",
+              opacity: zoom <= ZOOM_MIN ? 0.4 : 1,
+              cursor: zoom <= ZOOM_MIN ? "default" : "pointer",
+            }}
+          >
+            −
+          </button>
+          <span style={{
             fontSize: 13,
             fontWeight: 600,
-            padding: "6px 14px",
-            cursor: "pointer",
-          }}
-        >
-          Lopeta katselu
-        </button>
+            color: "#FFFFFF",
+            minWidth: 44,
+            textAlign: "center",
+          }}>
+            {Math.round(zoom * 100)} %
+          </span>
+          <button
+            onClick={zoomIn}
+            aria-label="Lähennä"
+            disabled={zoom >= ZOOM_MAX}
+            style={{
+              ...btnStyle,
+              padding: "6px 12px",
+              opacity: zoom >= ZOOM_MAX ? 0.4 : 1,
+              cursor: zoom >= ZOOM_MAX ? "default" : "pointer",
+            }}
+          >
+            +
+          </button>
+          <button
+            onClick={onClose}
+            aria-label="Lopeta katselu"
+            style={btnStyle}
+          >
+            Lopeta katselu
+          </button>
+        </div>
       </div>
 
       {/* Video area */}
-      <div style={{ position: "relative", background: "#000000", minHeight: 200 }}>
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          style={{
-            width: "100%",
-            display: stream ? "block" : "none",
-            maxHeight: "60vh",
-            objectFit: "contain",
-            background: "#000000",
-          }}
-        />
+      <div style={{ position: "relative", background: "#000000", minHeight: 200, overflow: "hidden" }}>
+        <div style={{
+          transform: `scale(${zoom})`,
+          transformOrigin: "top center",
+        }}>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{
+              width: "100%",
+              display: stream ? "block" : "none",
+              maxHeight: "60vh",
+              objectFit: "contain",
+              background: "#000000",
+            }}
+          />
+        </div>
 
         {/* Loading / waiting state */}
         {!stream && !error && (
