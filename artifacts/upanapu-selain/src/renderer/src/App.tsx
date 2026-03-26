@@ -34,6 +34,7 @@ export default function App() {
 
   const screenShareRef = useRef<ScreenShare | null>(null)
   const otpTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!window.electronAPI) return
@@ -132,19 +133,32 @@ export default function App() {
     }
   }, [pairCode, settings.firstRun])
 
+  // When pairCode arrives after a retry, immediately clear the retrying state
+  // and cancel the 20s safety timeout so the button stays hidden cleanly.
+  useEffect(() => {
+    if (pairCode && retrying) {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current)
+        retryTimeoutRef.current = null
+      }
+      setRetrying(false)
+    }
+  }, [pairCode, retrying])
+
   const handleWelcomeDone = useCallback((blockPayments: boolean) => {
     setSettings(prev => ({ ...prev, firstRun: false, blockPayments }))
   }, [])
 
   const handleRegisterRetry = useCallback(async () => {
     if (retrying) return
+    if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current)
     setRetrying(true)
     setRegisterError(false)
     await window.electronAPI?.registerRetry?.()
-    // On success, onSettingsUpdated fires and sets pairCode.
-    // On failure, onRegisterError fires and resets retrying/error state.
-    // Guard: if neither fires within 20s, reset retrying so button re-enables.
-    setTimeout(() => setRetrying(false), 20_000)
+    // On success: onSettingsUpdated fires → pairCode set → useEffect below resets retrying.
+    // On failure: onRegisterError fires → resets both registerError and retrying.
+    // Safety fallback: reset retrying after 20s if neither event fires.
+    retryTimeoutRef.current = setTimeout(() => setRetrying(false), 20_000)
   }, [retrying])
 
   const handleDismissWarning = useCallback(() => {

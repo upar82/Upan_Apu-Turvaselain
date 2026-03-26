@@ -8,6 +8,7 @@ let pollTimer: ReturnType<typeof setInterval> | null = null
 let onSettingsChanged: ((settings: Settings) => void) | null = null
 let onMessageReceived: ((message: string) => void) | null = null
 let onOtpRequest: ((otp: string, expiresAt: Date) => void) | null = null
+let onRegisterError: (() => void) | null = null
 
 // Track last seen OTP to avoid triggering the modal repeatedly on every poll
 let lastSeenOtp: string | null = null
@@ -22,6 +23,10 @@ export function setMessageReceivedCallback(fn: (message: string) => void): void 
 
 export function setOtpCallback(fn: (otp: string, expiresAt: Date) => void): void {
   onOtpRequest = fn
+}
+
+export function setRegisterErrorCallback(fn: () => void): void {
+  onRegisterError = fn
 }
 
 const REGISTER_TIMEOUT_MS = 15_000
@@ -140,6 +145,9 @@ async function fetchAndApplySettings(pairCode: string): Promise<void> {
       if (fresh) {
         onSettingsChanged?.(getSettings())
         startSync()
+      } else {
+        // Re-registration failed — notify renderer so it can show error/retry UI
+        onRegisterError?.()
       }
       return
     }
