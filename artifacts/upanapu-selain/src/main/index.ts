@@ -285,9 +285,6 @@ ipcMain.handle('device:clearMessage', async (): Promise<void> => {
 })
 
 app.whenReady().then(async () => {
-  // Reset per-session settings every launch — payment question always asked
-  saveSettings({ firstRun: true, blockPayments: false })
-
   buildMinimalMenu()
   createWindow()
 
