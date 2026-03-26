@@ -15,7 +15,9 @@ interface Room {
   portal?: Peer;
 }
 
-const VALID_PAIR_CODE = /^[A-Z2-9]{12}$/;
+// 12-character alphanumeric codes from the unambiguous alphabet (Task #16).
+// Legacy 6-digit codes are no longer accepted.
+const VALID_PAIR_CODE = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{12}$/;
 
 const rooms = new Map<string, Room>();
 
