@@ -1,5 +1,24 @@
 # Workspace
 
+## Älä riko näitä
+
+Nämä ominaisuudet ovat hajonneet toistuvasti muiden muutosten yhteydessä. Tarkista jokainen kohta ennen kuin merkitset tehtävän valmiiksi.
+
+### Maksuliikennekysymys joka käynnistyskerralla
+
+- **Ominaisuus**: `WelcomeScreen` näytetään joka käynnistyskerralla riippumatta siitä, onko käyttäjä aiemmin vastannut maksuliikennekysymykseen.
+- **Tiedostot**: `artifacts/upanapu-selain/src/main/index.ts`, `artifacts/upanapu-selain/src/renderer/src/WelcomeScreen.tsx`
+- **Miten toimii**: `app.whenReady()`:ssä kutsutaan `saveSettings({ firstRun: true })` ennen ikkunan luomista — tämä nollaa `firstRun`-arvon aina käynnistettäessä. `blockPayments`-asetus tallennetaan **vain session ajaksi** (ei electron-storeen); `deviceId` ja `syncEnabled` sen sijaan muistetaan pysyvästi storen kautta.
+- **Toistuva virhe**: `firstRun`-logiikka korvataan tai `blockPayments` tallennetaan storeen pysyvästi, jolloin maksuliikennekysymys näkyy vain kerran eikä joka käynnistyksellä.
+
+### Zoomauspainikkeet näytön katselunäkymässä
+
+- **Ominaisuus**: Portaalin `ScreenView`-komponentissa on `−` / `+` painikkeet zoomaukseen sekä zoomitason prosenttinäyttö.
+- **Tiedosto**: `artifacts/omainen-portaali/src/ScreenView.tsx`
+- **Toistuva virhe**: Komponentti refaktoroidaan tai korvataan ilman zoomauspainikkeiden säilyttämistä, jolloin ominaisuus katoaa kokonaan.
+
+---
+
 ## Overview
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
