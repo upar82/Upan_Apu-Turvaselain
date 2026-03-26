@@ -71,6 +71,12 @@ export default function App() {
       }))
     }
 
+    if (window.electronAPI.onOtpCleared) {
+      cleanups.push(window.electronAPI.onOtpCleared(() => {
+        setOtpRequest(null)
+      }))
+    }
+
     if (window.electronAPI.onRegisterError) {
       cleanups.push(window.electronAPI.onRegisterError(() => {
         setRegisterError(true)

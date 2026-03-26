@@ -12,6 +12,7 @@ let pollTimer: ReturnType<typeof setInterval> | null = null
 let onSettingsChanged: ((settings: Settings) => void) | null = null
 let onMessageReceived: ((message: string) => void) | null = null
 let onOtpRequest: ((otp: string, expiresAt: Date) => void) | null = null
+let onOtpCleared: (() => void) | null = null
 let onRegisterError: (() => void) | null = null
 
 // Track last seen OTP to avoid triggering the modal repeatedly on every poll
@@ -27,6 +28,10 @@ export function setMessageReceivedCallback(fn: (message: string) => void): void 
 
 export function setOtpCallback(fn: (otp: string, expiresAt: Date) => void): void {
   onOtpRequest = fn
+}
+
+export function setOtpClearedCallback(fn: () => void): void {
+  onOtpCleared = fn
 }
 
 export function setRegisterErrorCallback(fn: () => void): void {
@@ -174,8 +179,9 @@ async function fetchAndApplySettings(pairCode: string): Promise<void> {
         onOtpRequest?.(incomingOtp, expiresAt)
       }
     } else if (!incomingOtp && lastSeenOtp !== null) {
-      // OTP was confirmed or expired — reset tracking
+      // OTP was confirmed or expired — reset tracking and notify renderer
       lastSeenOtp = null
+      onOtpCleared?.()
     }
 
     const remote = data.settings as Partial<Settings>

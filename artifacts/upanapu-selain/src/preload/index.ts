@@ -71,6 +71,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('browser:otp', listener)
   },
 
+  onOtpCleared: (callback: () => void) => {
+    const listener = () => callback()
+    ipcRenderer.on('browser:otp-cleared', listener)
+    return () => ipcRenderer.removeListener('browser:otp-cleared', listener)
+  },
+
   registerRetry: (): Promise<boolean> =>
     ipcRenderer.invoke('device:registerRetry'),
 
