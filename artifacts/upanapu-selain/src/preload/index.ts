@@ -70,4 +70,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('browser:otp', listener)
     return () => ipcRenderer.removeListener('browser:otp', listener)
   },
+
+  registerRetry: (): Promise<boolean> =>
+    ipcRenderer.invoke('device:registerRetry'),
+
+  onRegisterError: (callback: () => void) => {
+    const listener = () => callback()
+    ipcRenderer.on('device:registerError', listener)
+    return () => ipcRenderer.removeListener('device:registerError', listener)
+  },
 })

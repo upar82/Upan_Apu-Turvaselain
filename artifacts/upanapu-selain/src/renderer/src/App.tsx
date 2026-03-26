@@ -29,6 +29,8 @@ export default function App() {
   const [screenShareStatus, setScreenShareStatus] = useState<ScreenShareStatus>('idle')
   const [otpRequest, setOtpRequest] = useState<{ otp: string; expiresAt: Date } | null>(null)
   const [otpTimeLeft, setOtpTimeLeft] = useState(0)
+  const [registerError, setRegisterError] = useState(false)
+  const [retrying, setRetrying] = useState(false)
 
   const screenShareRef = useRef<ScreenShare | null>(null)
   const otpTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -64,6 +66,13 @@ export default function App() {
     if (window.electronAPI.onOtpRequest) {
       cleanups.push(window.electronAPI.onOtpRequest((otp, expiresAt) => {
         setOtpRequest({ otp, expiresAt: new Date(expiresAt) })
+      }))
+    }
+
+    if (window.electronAPI.onRegisterError) {
+      cleanups.push(window.electronAPI.onRegisterError(() => {
+        setRegisterError(true)
+        setRetrying(false)
       }))
     }
 
@@ -127,6 +136,17 @@ export default function App() {
     setSettings(prev => ({ ...prev, firstRun: false, blockPayments }))
   }, [])
 
+  const handleRegisterRetry = useCallback(async () => {
+    if (retrying) return
+    setRetrying(true)
+    setRegisterError(false)
+    await window.electronAPI?.registerRetry?.()
+    // On success, onSettingsUpdated fires and sets pairCode.
+    // On failure, onRegisterError fires and resets retrying/error state.
+    // Guard: if neither fires within 20s, reset retrying so button re-enables.
+    setTimeout(() => setRetrying(false), 20_000)
+  }, [retrying])
+
   const handleDismissWarning = useCallback(() => {
     setWarning(null)
   }, [])
@@ -164,6 +184,9 @@ export default function App() {
           settings={settings}
           pairCode={pairCode}
           onDone={handleWelcomeDone}
+          registerError={registerError}
+          retrying={retrying}
+          onRetry={handleRegisterRetry}
         />
       )}
 

@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, WebContentsView, shell, nativeTheme, Menu, desktopCapturer } from 'electron'
 import path from 'path'
 import { getSettings, saveSettings, type Settings } from './settings-store'
-import { registerDevice, startSync, stopSync, getPairCode, setSettingsChangedCallback, setMessageReceivedCallback, setOtpCallback, reportUrl, deleteMessage } from './device-sync'
+import { registerDevice, doRegister, startSync, stopSync, getPairCode, setSettingsChangedCallback, setMessageReceivedCallback, setOtpCallback, reportUrl, deleteMessage } from './device-sync'
 
 nativeTheme.themeSource = 'light'
 
@@ -298,6 +298,18 @@ ipcMain.handle('device:clearMessage', async (): Promise<void> => {
   }
 })
 
+ipcMain.handle('device:registerRetry', async (): Promise<boolean> => {
+  const result = await doRegister()
+  if (result) {
+    const updatedSettings = getSettings()
+    mainWindow?.webContents.send('settings:updated', updatedSettings)
+    startSync()
+    return true
+  }
+  mainWindow?.webContents.send('device:registerError')
+  return false
+})
+
 ipcMain.handle('screenshare:getSourceId', async (): Promise<string | null> => {
   try {
     const sources = await desktopCapturer.getSources({ types: ['screen'] })
@@ -348,6 +360,10 @@ app.whenReady().then(async () => {
   if (registered) {
     const updatedSettings = getSettings()
     mainWindow?.webContents.send('settings:updated', updatedSettings)
+  } else if (!getSettings().pairCode) {
+    // Registration failed and no pair code is available — notify renderer so it
+    // can show an error instead of an infinite "Ladataan koodia..." spinner.
+    mainWindow?.webContents.send('device:registerError')
   }
 
   startSync()

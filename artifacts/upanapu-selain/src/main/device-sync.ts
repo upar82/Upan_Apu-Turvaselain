@@ -24,8 +24,13 @@ export function setOtpCallback(fn: (otp: string, expiresAt: Date) => void): void
   onOtpRequest = fn
 }
 
-async function doRegister(): Promise<{ deviceId: string; pairCode: string } | null> {
+const REGISTER_TIMEOUT_MS = 15_000
+
+export async function doRegister(): Promise<{ deviceId: string; pairCode: string } | null> {
   const settings = getSettings()
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), REGISTER_TIMEOUT_MS)
+
   try {
     const res = await fetch(`${API_BASE}/api/devices/register`, {
       method: 'POST',
@@ -37,7 +42,8 @@ async function doRegister(): Promise<{ deviceId: string; pairCode: string } | nu
           fontSize: settings.fontSize,
           blockPayments: settings.blockPayments
         }
-      })
+      }),
+      signal: controller.signal
     })
 
     if (!res.ok) {
@@ -50,8 +56,14 @@ async function doRegister(): Promise<{ deviceId: string; pairCode: string } | nu
     console.log('[device-sync] Laite rekisteröity, koodi:', data.pairCode)
     return data
   } catch (err) {
-    console.warn('[device-sync] Rekisteröintivirhe:', err)
+    if ((err as Error).name === 'AbortError') {
+      console.warn('[device-sync] Rekisteröinti aikakatkaistiin (15s)')
+    } else {
+      console.warn('[device-sync] Rekisteröintivirhe:', err)
+    }
     return null
+  } finally {
+    clearTimeout(timer)
   }
 }
 

@@ -6,6 +6,9 @@ interface WelcomeScreenProps {
   settings: Settings
   pairCode: string | null
   onDone: (blockPayments: boolean) => void
+  registerError: boolean
+  retrying: boolean
+  onRetry: () => void
 }
 
 function formatPairCode(code: string): string {
@@ -16,7 +19,7 @@ function formatPairCode(code: string): string {
   return code
 }
 
-export default function WelcomeScreen({ settings, pairCode, onDone }: WelcomeScreenProps) {
+export default function WelcomeScreen({ settings, pairCode, onDone, registerError, retrying, onRetry }: WelcomeScreenProps) {
   const [step, setStep] = useState<'choice' | 'code'>('choice')
   const [chosen, setChosen] = useState<boolean | null>(null)
   const [chosenBlock, setChosenBlock] = useState<boolean>(false)
@@ -315,6 +318,40 @@ export default function WelcomeScreen({ settings, pairCode, onDone }: WelcomeScr
                   >
                     {formatPairCode(pairCode)}
                   </div>
+                </div>
+              ) : registerError ? (
+                <div style={{
+                  background: 'rgba(220,38,38,0.12)',
+                  border: '2px solid rgba(220,38,38,0.4)',
+                  borderRadius: 16,
+                  padding: '24px',
+                  marginBottom: 20,
+                }}>
+                  <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+                  <p style={{ color: '#FCA5A5', fontSize: 17, fontWeight: 700, marginBottom: 8, lineHeight: 1.4 }}>
+                    Yhteys palvelimeen epäonnistui
+                  </p>
+                  <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 15, marginBottom: 20, lineHeight: 1.5 }}>
+                    Tarkista internet-yhteys ja yritä uudelleen.
+                  </p>
+                  <button
+                    onClick={onRetry}
+                    disabled={retrying}
+                    style={{
+                      padding: '14px 32px',
+                      background: retrying ? 'rgba(255,255,255,0.06)' : 'rgba(8,102,255,0.25)',
+                      border: retrying ? '2px solid rgba(255,255,255,0.15)' : '2px solid rgba(8,102,255,0.6)',
+                      borderRadius: 12,
+                      color: retrying ? 'rgba(255,255,255,0.35)' : '#FFFFFF',
+                      fontSize: 17,
+                      fontWeight: 700,
+                      cursor: retrying ? 'not-allowed' : 'pointer',
+                      fontFamily: 'inherit',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {retrying ? '⏳ Yritetään...' : '🔄 Yritä uudelleen'}
+                  </button>
                 </div>
               ) : (
                 <div style={{
