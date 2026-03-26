@@ -4,6 +4,8 @@ import { getSettings, saveSettings, type Settings } from './settings-store'
 import { registerDevice, doRegister, startSync, stopSync, getPairCode, setSettingsChangedCallback, setMessageReceivedCallback, setOtpCallback, setOtpClearedCallback, setRegisterErrorCallback, reportUrl, deleteMessage } from './device-sync'
 import { injectCookieConsent } from './cookie-consent'
 
+declare const __BUILD_TIMESTAMP__: string
+
 nativeTheme.themeSource = 'light'
 
 function buildMinimalMenu(): void {
@@ -383,6 +385,24 @@ app.whenReady().then(async () => {
   setRegisterErrorCallback(() => {
     mainWindow?.webContents.send('device:registerError')
   })
+
+  // When a new packaged build is installed (build timestamp differs from what
+  // was stored on the last install), wipe the device registration so the app
+  // gets a fresh pair code.  Skipped in dev builds (app.isPackaged === false)
+  // to avoid resetting the code on every hot-reload.
+  if (app.isPackaged) {
+    const storedBuildId = getSettings().installedBuildId
+    if (storedBuildId !== __BUILD_TIMESTAMP__) {
+      console.log('[app] New build detected — clearing device registration for fresh pair code')
+      saveSettings({
+        deviceId: null,
+        pairCode: null,
+        syncEnabled: false,
+        pairCodeShown: false,
+        installedBuildId: __BUILD_TIMESTAMP__,
+      })
+    }
+  }
 
   const registered = await registerDevice()
   if (registered) {

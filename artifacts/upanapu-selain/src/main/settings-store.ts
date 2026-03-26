@@ -10,6 +10,7 @@ export interface Settings {
   pairCode: string | null
   syncEnabled: boolean
   pairCodeShown: boolean
+  installedBuildId: string | null
 }
 
 type Schema = {
@@ -22,6 +23,7 @@ type Schema = {
   pairCode: string | null
   syncEnabled: boolean
   pairCodeShown: boolean
+  installedBuildId: string | null
 }
 
 const store = new Store<Schema>({
@@ -35,7 +37,8 @@ const store = new Store<Schema>({
     deviceId: null,
     pairCode: null,
     syncEnabled: false,
-    pairCodeShown: false
+    pairCodeShown: false,
+    installedBuildId: null
   },
   schema: {
     homeUrl: {
@@ -74,6 +77,10 @@ const store = new Store<Schema>({
     pairCodeShown: {
       type: 'boolean',
       default: false
+    },
+    installedBuildId: {
+      type: ['string', 'null'],
+      default: null
     }
   }
 })
@@ -88,7 +95,8 @@ export function getSettings(): Settings {
     deviceId: store.get('deviceId') as string | null,
     pairCode: store.get('pairCode') as string | null,
     syncEnabled: store.get('syncEnabled'),
-    pairCodeShown: store.get('pairCodeShown')
+    pairCodeShown: store.get('pairCodeShown'),
+    installedBuildId: store.get('installedBuildId') as string | null,
   }
 }
 
@@ -102,4 +110,5 @@ export function saveSettings(settings: Partial<Settings>): void {
   if (settings.pairCode !== undefined) store.set('pairCode', settings.pairCode)
   if (settings.syncEnabled !== undefined) store.set('syncEnabled', settings.syncEnabled)
   if (settings.pairCodeShown !== undefined) store.set('pairCodeShown', settings.pairCodeShown)
+  if (settings.installedBuildId !== undefined) store.set('installedBuildId', settings.installedBuildId)
 }

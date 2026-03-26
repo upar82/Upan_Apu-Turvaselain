@@ -4,7 +4,10 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()]
+    plugins: [externalizeDepsPlugin()],
+    define: {
+      __BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
+    },
   },
   preload: {
     plugins: [externalizeDepsPlugin()]
