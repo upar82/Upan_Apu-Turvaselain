@@ -1,7 +1,7 @@
 import { getSettings, saveSettings } from './settings-store'
 import type { Settings } from './settings-store'
 
-const API_BASE = process.env['VITE_API_URL'] || 'https://upanapu-api.replit.app'
+const API_BASE = process.env['VITE_API_URL'] || 'https://upanapu.replit.app'
 const POLL_INTERVAL_MS = 30_000
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
