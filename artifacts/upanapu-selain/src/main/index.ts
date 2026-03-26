@@ -288,6 +288,7 @@ ipcMain.handle('settings:update', (_event, newSettings: Settings): boolean => {
   saveSettings(newSettings)
   const updated = getSettings()
   mainWindow?.webContents.send('settings:updated', updated)
+  applyFontSize(updated.fontSize)
 
   if (!newSettings.firstRun) {
     updateBrowserViewBounds(false)
