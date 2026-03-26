@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, WebContentsView, shell, nativeTheme, Menu, desktopCapturer } from 'electron'
 import path from 'path'
 import { getSettings, saveSettings, type Settings } from './settings-store'
-import { registerDevice, startSync, stopSync, getPairCode, setSettingsChangedCallback, setMessageReceivedCallback, reportUrl, deleteMessage } from './device-sync'
+import { registerDevice, startSync, stopSync, getPairCode, setSettingsChangedCallback, setMessageReceivedCallback, setOtpCallback, reportUrl, deleteMessage } from './device-sync'
 
 nativeTheme.themeSource = 'light'
 
@@ -331,6 +331,10 @@ app.whenReady().then(async () => {
 
   setMessageReceivedCallback((message: string) => {
     mainWindow?.webContents.send('browser:message', message)
+  })
+
+  setOtpCallback((otp: string, expiresAt: Date) => {
+    mainWindow?.webContents.send('browser:otp', otp, expiresAt.toISOString())
   })
 
   const registered = await registerDevice()

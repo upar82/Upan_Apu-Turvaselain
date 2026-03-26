@@ -12,6 +12,8 @@ export const devicesTable = pgTable("devices", {
   currentUrl: text("current_url"),
   visitHistory: jsonb("visit_history").notNull().default([]),
   pendingMessage: text("pending_message"),
+  pairingOtp: text("pairing_otp"),
+  pairingOtpExpires: timestamp("pairing_otp_expires"),
 });
 
 export const insertDeviceSchema = createInsertSchema(devicesTable).omit({

@@ -75,16 +75,23 @@ export default function App() {
   const [messageSending, setMessageSending] = useState(false);
   const [messageSent, setMessageSent] = useState(false);
   const [showScreenView, setShowScreenView] = useState(false);
+  const [connectStep, setConnectStep] = useState<1 | 2>(1);
+  const [otpValue, setOtpValue] = useState("");
+  const [otpExpires, setOtpExpires] = useState<Date | null>(null);
+  const [otpTimeLeft, setOtpTimeLeft] = useState(0);
+  const [pairingRequesting, setPairingRequesting] = useState(false);
+  const [pairingConfirming, setPairingConfirming] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const msgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const otpTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const savedCode = sessionStorage.getItem("upanapu_code");
     if (savedCode) {
       setRawCode(savedCode);
       setDisplayCode(formatCode(savedCode));
-      handleConnect(savedCode);
+      void loadDevice(savedCode);
     }
   }, []);
 
@@ -103,6 +110,23 @@ export default function App() {
     };
   }, [view]);
 
+  // Countdown timer for OTP step
+  useEffect(() => {
+    if (!otpExpires) {
+      if (otpTimerRef.current) clearInterval(otpTimerRef.current);
+      return;
+    }
+    const update = () => {
+      const secs = Math.max(0, Math.round((otpExpires.getTime() - Date.now()) / 1000));
+      setOtpTimeLeft(secs);
+    };
+    update();
+    otpTimerRef.current = setInterval(update, 1000);
+    return () => {
+      if (otpTimerRef.current) clearInterval(otpTimerRef.current);
+    };
+  }, [otpExpires]);
+
   async function refreshActivity(digits: string) {
     try {
       const res = await fetch(`${API_BASE}/devices/${digits}/settings`);
@@ -114,16 +138,9 @@ export default function App() {
     }
   }
 
-  async function handleConnect(code?: string) {
-    const digits = (code ?? rawCode).replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-    if (!/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{12}$/.test(digits)) {
-      setError("Syötä 12-merkkinen laitekoodi (muotoa XXXX-XXXX-XXXX).");
-      return;
-    }
-
+  async function loadDevice(digits: string) {
     setLoading(true);
     setError(null);
-
     try {
       const res = await fetch(`${API_BASE}/devices/${digits}/settings`);
       if (res.status === 404) {
@@ -138,7 +155,6 @@ export default function App() {
         setError("Yhteysvirhe. Yritä hetken kuluttua uudelleen.");
         return;
       }
-
       const data = await res.json() as DeviceInfo;
       setDeviceInfo(data);
       const remoteSettings = data.settings as Partial<DeviceSettings>;
@@ -150,10 +166,81 @@ export default function App() {
       }));
       sessionStorage.setItem("upanapu_code", digits);
       setView("settings");
+      setConnectStep(1);
     } catch {
       setError("Verkkovirhe. Tarkista internet-yhteys.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleRequestPairing() {
+    const digits = rawCode.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    if (!/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{12}$/.test(digits)) {
+      setError("Syötä 12-merkkinen laitekoodi (muotoa XXXX-XXXX-XXXX).");
+      return;
+    }
+
+    setPairingRequesting(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/devices/${digits}/request-pairing`, { method: "POST" });
+      if (res.status === 404) {
+        setError("Laitetta ei löydy. Tarkista koodi.");
+        return;
+      }
+      if (res.status === 410) {
+        setError("Laitekoodi on vanhentunut (yli 30 päivää poissa). Luo uusi yhteys selaimesta.");
+        return;
+      }
+      if (res.status === 429) {
+        setError("Liian monta yhdistämispyyntöä. Odota hetki ja yritä uudelleen.");
+        return;
+      }
+      if (!res.ok) {
+        setError("Yhteysvirhe. Yritä hetken kuluttua uudelleen.");
+        return;
+      }
+      const data = await res.json() as { requested: boolean; expiresIn: number };
+      setOtpExpires(new Date(Date.now() + data.expiresIn * 1000));
+      setOtpTimeLeft(data.expiresIn);
+      setOtpValue("");
+      setConnectStep(2);
+      setError(null);
+    } catch {
+      setError("Verkkovirhe. Tarkista internet-yhteys.");
+    } finally {
+      setPairingRequesting(false);
+    }
+  }
+
+  async function handleConfirmPairing() {
+    const digits = rawCode;
+    if (otpValue.length !== 4 || !/^\d{4}$/.test(otpValue)) {
+      setError("Syötä 4-numeroinen vahvistuskoodi.");
+      return;
+    }
+
+    setPairingConfirming(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/devices/${digits}/confirm-pairing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ otp: otpValue }),
+      });
+      const data = await res.json() as { confirmed?: boolean; error?: string };
+      if (!res.ok) {
+        setError(data.error ?? "Vahvistus epäonnistui. Tarkista koodi ja yritä uudelleen.");
+        return;
+      }
+      await loadDevice(digits);
+    } catch {
+      setError("Verkkovirhe. Tarkista internet-yhteys.");
+    } finally {
+      setPairingConfirming(false);
     }
   }
 
@@ -228,6 +315,11 @@ export default function App() {
     setMessageText("");
     setMessageSent(false);
     setShowScreenView(false);
+    setConnectStep(1);
+    setOtpValue("");
+    setOtpExpires(null);
+    setOtpTimeLeft(0);
+    if (otpTimerRef.current) clearInterval(otpTimerRef.current);
   }
 
   function handleCodeInput(value: string) {
@@ -254,7 +346,7 @@ export default function App() {
           </p>
         </div>
 
-        {/* Connect view */}
+        {/* Connect view — 2-step */}
         {view === "connect" && (
           <div style={{
             background: "rgba(255,255,255,0.05)",
@@ -262,70 +354,213 @@ export default function App() {
             borderRadius: 20,
             padding: "36px 32px",
           }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#FFFFFF" }}>
-              Yhdistä laitteeseen
-            </h2>
-            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", marginBottom: 24, lineHeight: 1.6 }}>
-              Syötä läheisesi Upan Apu -selaimen asennuksen yhteydessä saatu 12-merkkinen laitekoodi alle.
-            </p>
+            {connectStep === 1 ? (
+              <>
+                <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#FFFFFF" }}>
+                  Yhdistä laitteeseen
+                </h2>
+                <p style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", marginBottom: 24, lineHeight: 1.6 }}>
+                  Syötä läheisesi Upan Apu -selaimen laitekoodi. Läheisesi näytölle ilmestyy vahvistuskoodi, jonka hän kertoo sinulle.
+                </p>
 
-            <label
-              htmlFor="code-input"
-              style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 8 }}
-            >
-              Laitekoodi
-            </label>
-            <input
-              id="code-input"
-              type="text"
-              placeholder="XXXX-XXXX-XXXX"
-              value={displayCode}
-              onChange={e => handleCodeInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleConnect()}
-              autoComplete="off"
-              style={{
-                width: "100%",
-                padding: "16px 20px",
-                fontSize: 28,
-                fontWeight: 900,
-                letterSpacing: "0.12em",
-                fontFamily: "monospace",
-                background: "rgba(255,255,255,0.08)",
-                border: error ? "2px solid #FF6B35" : "2px solid rgba(255,255,255,0.15)",
-                borderRadius: 12,
-                color: "#FFFFFF",
-                textAlign: "center",
-                outline: "none",
-                marginBottom: 8,
-                boxSizing: "border-box",
-              }}
-            />
+                <label
+                  htmlFor="code-input"
+                  style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 8 }}
+                >
+                  Laitekoodi
+                </label>
+                <input
+                  id="code-input"
+                  type="text"
+                  placeholder="XXXX-XXXX-XXXX"
+                  value={displayCode}
+                  onChange={e => handleCodeInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleRequestPairing()}
+                  autoComplete="off"
+                  style={{
+                    width: "100%",
+                    padding: "16px 20px",
+                    fontSize: 28,
+                    fontWeight: 900,
+                    letterSpacing: "0.12em",
+                    fontFamily: "monospace",
+                    background: "rgba(255,255,255,0.08)",
+                    border: error ? "2px solid #FF6B35" : "2px solid rgba(255,255,255,0.15)",
+                    borderRadius: 12,
+                    color: "#FFFFFF",
+                    textAlign: "center",
+                    outline: "none",
+                    marginBottom: 8,
+                    boxSizing: "border-box",
+                  }}
+                />
 
-            {error && (
-              <p style={{ fontSize: 14, color: "#FF6B35", marginBottom: 12 }} role="alert">
-                ⚠️ {error}
-              </p>
+                {error && (
+                  <p style={{ fontSize: 14, color: "#FF6B35", marginBottom: 12 }} role="alert">
+                    ⚠️ {error}
+                  </p>
+                )}
+
+                <button
+                  onClick={handleRequestPairing}
+                  disabled={pairingRequesting || rawCode.length !== 12}
+                  style={{
+                    width: "100%",
+                    padding: "16px",
+                    marginTop: 8,
+                    background: rawCode.length === 12 && !pairingRequesting ? "#0866FF" : "rgba(255,255,255,0.1)",
+                    border: "none",
+                    borderRadius: 12,
+                    color: rawCode.length === 12 && !pairingRequesting ? "#FFFFFF" : "rgba(255,255,255,0.35)",
+                    fontSize: 16,
+                    fontWeight: 700,
+                    cursor: rawCode.length === 12 && !pairingRequesting ? "pointer" : "not-allowed",
+                    transition: "background 0.2s",
+                  }}
+                >
+                  {pairingRequesting ? "Lähetetään pyyntö…" : "Yhdistä laitteeseen →"}
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Step 2: OTP confirmation */}
+                <div style={{
+                  background: "rgba(34,197,94,0.12)",
+                  border: "1.5px solid rgba(34,197,94,0.35)",
+                  borderRadius: 12,
+                  padding: "14px 18px",
+                  marginBottom: 24,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                }}>
+                  <span style={{ fontSize: 20 }}>✅</span>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#4ade80" }}>
+                      Pyyntö lähetetty laitteelle!
+                    </div>
+                    <div style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>
+                      Laite: <span style={{ fontFamily: "monospace", fontWeight: 700, color: "#FFFFFF" }}>{formatCode(rawCode)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", marginBottom: 20, lineHeight: 1.65 }}>
+                  Läheisesi näytölle on ilmestynyt 4-numeroinen koodi. Soita hänelle ja pyydä lukemaan se sinulle.
+                </p>
+
+                {/* Countdown */}
+                <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
+                  {otpTimeLeft > 0 ? (
+                    <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>
+                      ⏱ Koodi vanhenee {Math.floor(otpTimeLeft / 60)}:{(otpTimeLeft % 60).toString().padStart(2, "0")} kuluttua
+                    </span>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: 13, color: "#FF6B35" }}>⏰ Koodi on vanhentunut.</span>
+                      <button
+                        onClick={handleRequestPairing}
+                        disabled={pairingRequesting}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#0866FF",
+                          fontSize: 13,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          padding: 0,
+                          textDecoration: "underline",
+                        }}
+                      >
+                        {pairingRequesting ? "Lähetetään…" : "Lähetä uudelleen"}
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                <label
+                  htmlFor="otp-input"
+                  style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 8 }}
+                >
+                  Vahvistuskoodi (4 numeroa)
+                </label>
+                <input
+                  id="otp-input"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0000"
+                  value={otpValue}
+                  onChange={e => {
+                    setOtpValue(e.target.value.replace(/\D/g, "").slice(0, 4));
+                    setError(null);
+                  }}
+                  onKeyDown={e => e.key === "Enter" && otpValue.length === 4 && otpTimeLeft > 0 && handleConfirmPairing()}
+                  autoComplete="one-time-code"
+                  maxLength={4}
+                  style={{
+                    width: "100%",
+                    padding: "16px 20px",
+                    fontSize: 36,
+                    fontWeight: 900,
+                    letterSpacing: "0.35em",
+                    fontFamily: "monospace",
+                    background: "rgba(255,255,255,0.08)",
+                    border: error ? "2px solid #FF6B35" : "2px solid rgba(255,255,255,0.15)",
+                    borderRadius: 12,
+                    color: "#FFFFFF",
+                    textAlign: "center",
+                    outline: "none",
+                    marginBottom: 8,
+                    boxSizing: "border-box",
+                  }}
+                />
+
+                {error && (
+                  <p style={{ fontSize: 14, color: "#FF6B35", marginBottom: 12 }} role="alert">
+                    ⚠️ {error}
+                  </p>
+                )}
+
+                <button
+                  onClick={handleConfirmPairing}
+                  disabled={pairingConfirming || loading || otpValue.length !== 4 || otpTimeLeft === 0}
+                  style={{
+                    width: "100%",
+                    padding: "16px",
+                    marginTop: 8,
+                    background: otpValue.length === 4 && otpTimeLeft > 0 && !pairingConfirming && !loading
+                      ? "#0866FF" : "rgba(255,255,255,0.1)",
+                    border: "none",
+                    borderRadius: 12,
+                    color: otpValue.length === 4 && otpTimeLeft > 0 && !pairingConfirming && !loading
+                      ? "#FFFFFF" : "rgba(255,255,255,0.35)",
+                    fontSize: 16,
+                    fontWeight: 700,
+                    cursor: otpValue.length === 4 && otpTimeLeft > 0 && !pairingConfirming && !loading
+                      ? "pointer" : "not-allowed",
+                    transition: "background 0.2s",
+                  }}
+                >
+                  {pairingConfirming || loading ? "Vahvistetaan…" : "✓ Vahvista yhteys"}
+                </button>
+
+                <button
+                  onClick={() => { setConnectStep(1); setError(null); setOtpValue(""); }}
+                  style={{
+                    width: "100%",
+                    padding: "12px",
+                    marginTop: 10,
+                    background: "none",
+                    border: "none",
+                    color: "rgba(255,255,255,0.4)",
+                    fontSize: 14,
+                    cursor: "pointer",
+                  }}
+                >
+                  ← Takaisin
+                </button>
+              </>
             )}
-
-            <button
-              onClick={() => handleConnect()}
-              disabled={loading || rawCode.length !== 12}
-              style={{
-                width: "100%",
-                padding: "16px",
-                marginTop: 8,
-                background: rawCode.length === 12 && !loading ? "#0866FF" : "rgba(255,255,255,0.1)",
-                border: "none",
-                borderRadius: 12,
-                color: rawCode.length === 12 && !loading ? "#FFFFFF" : "rgba(255,255,255,0.35)",
-                fontSize: 16,
-                fontWeight: 700,
-                cursor: rawCode.length === 12 && !loading ? "pointer" : "not-allowed",
-                transition: "background 0.2s",
-              }}
-            >
-              {loading ? "Yhdistetään…" : "Yhdistä laitteeseen"}
-            </button>
           </div>
         )}
 

@@ -30,6 +30,15 @@ const settingsLimiter = rateLimit({
   message: { error: "Liian monta pyyntöä, odota hetki." },
 });
 
+const pairingLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 5,
+  keyGenerator: (req) => (req.params as { code: string }).code,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Liian monta yhdistämispyyntöä. Odota 10 minuuttia." },
+});
+
 function generateDeviceId(): string {
   return randomBytes(16).toString("hex");
 }
@@ -50,6 +59,15 @@ function generatePairCode(): string {
     }
   }
   return code;
+}
+
+function generateOtp(): string {
+  // Rejection sampling for uniform distribution in [0, 9999]
+  let n: number;
+  do {
+    n = randomBytes(2).readUInt16BE(0); // 0..65535
+  } while (n >= 60000); // 60000 = floor(65536/10000)*10000, avoids bias
+  return String(n % 10000).padStart(4, "0");
 }
 
 function isCodeExpired(lastSeen: Date): boolean {
@@ -117,6 +135,8 @@ router.get("/devices/:code/settings", settingsLimiter, async (req, res) => {
       lastSeen: device.lastSeen,
       currentUrl: device.currentUrl ?? null,
       visitHistory: device.visitHistory ?? [],
+      pairingOtp: device.pairingOtp ?? null,
+      pairingOtpExpires: device.pairingOtpExpires ?? null,
     });
   } catch (err) {
     res.status(500).json({ error: "Asetuksien haku epäonnistui." });
@@ -160,6 +180,90 @@ router.put("/devices/:code/settings", settingsLimiter, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Asetuksien tallennus epäonnistui." });
+  }
+});
+
+router.post("/devices/:code/request-pairing", pairingLimiter, async (req, res) => {
+  try {
+    const code = req.params["code"] as string;
+
+    const rows = await db
+      .select()
+      .from(devicesTable)
+      .where(eq(devicesTable.pairCode, code));
+
+    if (rows.length === 0) {
+      res.status(404).json({ error: "Laitetta ei löydy." });
+      return;
+    }
+
+    const device = rows[0];
+
+    if (isCodeExpired(device.lastSeen)) {
+      res.status(410).json({ error: "Laitekoodi on vanhentunut." });
+      return;
+    }
+
+    const otp = generateOtp();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    await db
+      .update(devicesTable)
+      .set({ pairingOtp: otp, pairingOtpExpires: expiresAt })
+      .where(eq(devicesTable.pairCode, code));
+
+    res.json({ requested: true, expiresIn: 300 });
+  } catch (err) {
+    res.status(500).json({ error: "Yhdistämispyynnön lähetys epäonnistui." });
+  }
+});
+
+router.post("/devices/:code/confirm-pairing", settingsLimiter, async (req, res) => {
+  try {
+    const code = req.params["code"] as string;
+    const otp = (req.body?.otp as string | undefined)?.trim();
+
+    if (!otp || !/^\d{4}$/.test(otp)) {
+      res.status(400).json({ error: "OTP puuttuu tai on virheellinen muoto." });
+      return;
+    }
+
+    const rows = await db
+      .select()
+      .from(devicesTable)
+      .where(eq(devicesTable.pairCode, code));
+
+    if (rows.length === 0) {
+      res.status(404).json({ error: "Laitetta ei löydy." });
+      return;
+    }
+
+    const device = rows[0];
+
+    if (!device.pairingOtp || !device.pairingOtpExpires) {
+      res.status(400).json({ error: "Ei aktiivista yhdistämispyyntöä. Pyydä uusi koodi." });
+      return;
+    }
+
+    if (new Date() > device.pairingOtpExpires) {
+      res.status(400).json({ error: "Koodi on vanhentunut. Pyydä uusi koodi." });
+      return;
+    }
+
+    if (device.pairingOtp !== otp) {
+      res.status(400).json({ error: "Väärä koodi. Tarkista koodi ja yritä uudelleen." });
+      return;
+    }
+
+    // Clear OTP after successful confirmation
+    await db
+      .update(devicesTable)
+      .set({ pairingOtp: null, pairingOtpExpires: null })
+      .where(eq(devicesTable.pairCode, code));
+
+    res.json({ confirmed: true });
+  } catch (err) {
+    res.status(500).json({ error: "Vahvistus epäonnistui." });
   }
 });
 

@@ -27,8 +27,11 @@ export default function App() {
   const [portalMessage, setPortalMessage] = useState<string | null>(null)
   const [pairCode, setPairCode] = useState<string | null>(null)
   const [screenShareStatus, setScreenShareStatus] = useState<ScreenShareStatus>('idle')
+  const [otpRequest, setOtpRequest] = useState<{ otp: string; expiresAt: Date } | null>(null)
+  const [otpTimeLeft, setOtpTimeLeft] = useState(0)
 
   const screenShareRef = useRef<ScreenShare | null>(null)
+  const otpTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     if (!window.electronAPI) return
@@ -58,9 +61,35 @@ export default function App() {
     if (window.electronAPI.onMessage) {
       cleanups.push(window.electronAPI.onMessage(msg => setPortalMessage(msg)))
     }
+    if (window.electronAPI.onOtpRequest) {
+      cleanups.push(window.electronAPI.onOtpRequest((otp, expiresAt) => {
+        setOtpRequest({ otp, expiresAt: new Date(expiresAt) })
+      }))
+    }
 
     return () => cleanups.forEach(fn => fn())
   }, [])
+
+  // Countdown for OTP modal
+  useEffect(() => {
+    if (!otpRequest) {
+      if (otpTimerRef.current) clearInterval(otpTimerRef.current)
+      return
+    }
+    const update = () => {
+      const secs = Math.max(0, Math.round((otpRequest.expiresAt.getTime() - Date.now()) / 1000))
+      setOtpTimeLeft(secs)
+      if (secs === 0) {
+        if (otpTimerRef.current) clearInterval(otpTimerRef.current)
+        setOtpRequest(null)
+      }
+    }
+    update()
+    otpTimerRef.current = setInterval(update, 1000)
+    return () => {
+      if (otpTimerRef.current) clearInterval(otpTimerRef.current)
+    }
+  }, [otpRequest])
 
   // Start/stop screen share module when pairCode and firstRun state are ready
   useEffect(() => {
@@ -136,6 +165,51 @@ export default function App() {
           pairCode={pairCode}
           onDone={handleWelcomeDone}
         />
+      )}
+
+      {otpRequest && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.80)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+        }}>
+          <div style={{
+            background: '#1a2b38',
+            border: '3px solid #0866FF',
+            borderRadius: 28,
+            padding: '44px 52px',
+            maxWidth: 460,
+            width: '90%',
+            textAlign: 'center',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.7)',
+          }}>
+            <div style={{ fontSize: 52, marginBottom: 18 }}>🔐</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#FFFFFF', marginBottom: 10, lineHeight: 1.3 }}>
+              Tukihenkilösi hakee yhteyttä!
+            </div>
+            <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.6)', marginBottom: 36, lineHeight: 1.65 }}>
+              Kerro hänelle tämä koodi puhelimessa:
+            </p>
+            <div style={{
+              fontSize: 80,
+              fontWeight: 900,
+              color: '#0866FF',
+              letterSpacing: '0.25em',
+              fontFamily: 'monospace',
+              marginBottom: 24,
+              lineHeight: 1,
+            }}>
+              {otpRequest.otp}
+            </div>
+            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)' }}>
+              ⏱ Koodi vanhenee {Math.floor(otpTimeLeft / 60)}:{(otpTimeLeft % 60).toString().padStart(2, '0')} kuluttua
+            </div>
+          </div>
+        </div>
       )}
 
       {portalMessage && (

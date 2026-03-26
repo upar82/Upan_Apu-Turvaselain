@@ -34,6 +34,7 @@ export interface ElectronAPI {
   onMessage?: (callback: (message: string) => void) => () => void
   clearMessage?: () => Promise<void>
   getScreenSourceId?: () => Promise<string | null>
+  onOtpRequest?: (callback: (otp: string, expiresAt: string) => void) => () => void
 }
 
 declare global {

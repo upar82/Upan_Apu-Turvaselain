@@ -7,6 +7,10 @@ const POLL_INTERVAL_MS = 30_000
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let onSettingsChanged: ((settings: Settings) => void) | null = null
 let onMessageReceived: ((message: string) => void) | null = null
+let onOtpRequest: ((otp: string, expiresAt: Date) => void) | null = null
+
+// Track last seen OTP to avoid triggering the modal repeatedly on every poll
+let lastSeenOtp: string | null = null
 
 export function setSettingsChangedCallback(fn: (settings: Settings) => void): void {
   onSettingsChanged = fn
@@ -14,6 +18,10 @@ export function setSettingsChangedCallback(fn: (settings: Settings) => void): vo
 
 export function setMessageReceivedCallback(fn: (message: string) => void): void {
   onMessageReceived = fn
+}
+
+export function setOtpCallback(fn: (otp: string, expiresAt: Date) => void): void {
+  onOtpRequest = fn
 }
 
 async function doRegister(): Promise<{ deviceId: string; pairCode: string } | null> {
@@ -126,7 +134,26 @@ async function fetchAndApplySettings(pairCode: string): Promise<void> {
 
     if (!res.ok) return
 
-    const data = await res.json() as { settings: Partial<Settings> }
+    const data = await res.json() as {
+      settings: Partial<Settings>
+      pairingOtp?: string | null
+      pairingOtpExpires?: string | null
+    }
+
+    // Check for a new OTP pairing request
+    const incomingOtp = data.pairingOtp ?? null
+    if (incomingOtp && incomingOtp !== lastSeenOtp && data.pairingOtpExpires) {
+      lastSeenOtp = incomingOtp
+      const expiresAt = new Date(data.pairingOtpExpires)
+      // Only show if not already expired
+      if (expiresAt > new Date()) {
+        onOtpRequest?.(incomingOtp, expiresAt)
+      }
+    } else if (!incomingOtp && lastSeenOtp !== null) {
+      // OTP was confirmed or expired — reset tracking
+      lastSeenOtp = null
+    }
+
     const remote = data.settings as Partial<Settings>
     const local = getSettings()
 

@@ -8,10 +8,11 @@ function buildWsUrl(): string {
       .replace(/^http:\/\//, "ws://")
       .replace(/\/$/, "") + "/ws";
   }
-  return "ws://localhost:8080/ws";
+  // Dev fallback: same hostname as the portal, API port from env or default 8080
+  const apiPort = (import.meta.env.VITE_API_PORT as string | undefined) ?? "8080";
+  const proto = window.location.protocol === "https:" ? "wss" : "ws";
+  return `${proto}://${window.location.hostname}:${apiPort}/ws`;
 }
-
-const WS_URL = buildWsUrl();
 
 export interface ScreenShareState {
   stream: MediaStream | null;
@@ -31,10 +32,14 @@ export function useScreenShare(
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const intentionalRef = useRef(false);
+  // Buffer ICE candidates that arrive before setRemoteDescription finishes
+  const candidateQueueRef = useRef<RTCIceCandidateInit[]>([]);
+  const remoteDescSetRef = useRef(false);
 
   useEffect(() => {
     if (!enabled || !pairCode) return;
 
+    const WS_URL = buildWsUrl();
     intentionalRef.current = false;
     setError(null);
     setConnected(false);
@@ -88,6 +93,8 @@ export function useScreenShare(
   ): Promise<void> {
     if (msg["type"] === "offer") {
       cleanupPeer();
+      candidateQueueRef.current = [];
+      remoteDescSetRef.current = false;
 
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -126,6 +133,18 @@ export function useScreenShare(
       await pc.setRemoteDescription(
         new RTCSessionDescription(msg["sdp"] as RTCSessionDescriptionInit),
       );
+
+      // Remote description is set — drain any buffered ICE candidates
+      remoteDescSetRef.current = true;
+      for (const candidate of candidateQueueRef.current) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch {
+          // Stale/invalid candidate; ignore
+        }
+      }
+      candidateQueueRef.current = [];
+
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
@@ -133,10 +152,16 @@ export function useScreenShare(
         ws.send(JSON.stringify({ type: "answer", sdp: pc.localDescription }));
       }
     } else if (msg["type"] === "ice-candidate" && msg["candidate"]) {
-      if (pcRef.current) {
-        await pcRef.current.addIceCandidate(
-          new RTCIceCandidate(msg["candidate"] as RTCIceCandidateInit),
-        );
+      const candidate = msg["candidate"] as RTCIceCandidateInit;
+      if (!remoteDescSetRef.current) {
+        // Buffer until remote description is ready
+        candidateQueueRef.current.push(candidate);
+      } else if (pcRef.current) {
+        try {
+          await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch {
+          // Stale candidate; ignore
+        }
       }
     } else if (msg["type"] === "peer-left") {
       setError("Yhteys läheisesi selaimeen katkesi.");
@@ -145,10 +170,14 @@ export function useScreenShare(
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
       cleanupPeer();
+    } else if (msg["type"] === "error") {
+      setError((msg["message"] as string | undefined) ?? "Signalointivirhe.");
     }
   }
 
   function cleanupPeer(): void {
+    remoteDescSetRef.current = false;
+    candidateQueueRef.current = [];
     if (pcRef.current) {
       pcRef.current.ontrack = null;
       pcRef.current.onicecandidate = null;
