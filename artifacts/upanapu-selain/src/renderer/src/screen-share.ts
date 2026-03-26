@@ -119,6 +119,9 @@ export class ScreenShare {
   }
 
   private async startStreaming(): Promise<void> {
+    // Clean up any existing session before starting a new one (idempotent)
+    this.cleanupPeer()
+
     try {
       const sourceId = await window.electronAPI.getScreenSourceId?.()
       if (!sourceId) {
