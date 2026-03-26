@@ -1,7 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import NavBar from './components/NavBar'
 import WelcomeScreen from './components/WelcomeScreen'
+import { ScreenShare, type ScreenShareStatus } from './screen-share'
 import type { Settings } from './types'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const API_BASE_URL: string = (import.meta as any).env?.['VITE_API_URL'] ?? 'https://upanapu-api.replit.app'
 
 const DEFAULT_SETTINGS: Settings = {
   homeUrl: 'https://www.google.fi',
@@ -23,6 +27,9 @@ export default function App() {
   const [warning, setWarning] = useState<string | null>(null)
   const [portalMessage, setPortalMessage] = useState<string | null>(null)
   const [pairCode, setPairCode] = useState<string | null>(null)
+  const [screenShareStatus, setScreenShareStatus] = useState<ScreenShareStatus>('idle')
+
+  const screenShareRef = useRef<ScreenShare | null>(null)
 
   useEffect(() => {
     if (!window.electronAPI) return
@@ -55,6 +62,38 @@ export default function App() {
 
     return () => cleanups.forEach(fn => fn())
   }, [])
+
+  // Start/stop screen share module when pairCode and firstRun state are ready
+  useEffect(() => {
+    const active = pairCode && !settings.firstRun
+
+    if (!active) {
+      if (screenShareRef.current) {
+        screenShareRef.current.stop()
+        screenShareRef.current = null
+        setScreenShareStatus('idle')
+      }
+      return
+    }
+
+    if (screenShareRef.current) {
+      screenShareRef.current.stop()
+      screenShareRef.current = null
+    }
+
+    const ss = new ScreenShare({
+      pairCode,
+      apiBaseUrl: API_BASE_URL,
+      onStatusChange: setScreenShareStatus,
+    })
+    ss.start()
+    screenShareRef.current = ss
+
+    return () => {
+      ss.stop()
+      screenShareRef.current = null
+    }
+  }, [pairCode, settings.firstRun])
 
   const handleWelcomeDone = useCallback((blockPayments: boolean) => {
     setSettings(prev => ({ ...prev, firstRun: false, blockPayments }))
@@ -89,6 +128,7 @@ export default function App() {
         tutorMode={settings.tutorMode}
         warning={warning}
         onDismissWarning={handleDismissWarning}
+        isStreaming={screenShareStatus === 'streaming'}
       />
 
       {settings.firstRun && (

@@ -10,6 +10,7 @@ interface NavBarProps {
   tutorMode: boolean
   warning: string | null
   onDismissWarning: () => void
+  isStreaming?: boolean
 }
 
 interface NavButtonProps {
@@ -168,6 +169,7 @@ export default function NavBar({
   tutorMode,
   warning,
   onDismissWarning,
+  isStreaming = false,
 }: NavBarProps) {
   const [inputValue, setInputValue] = useState(currentUrl)
   const [inputFocused, setInputFocused] = useState(false)
@@ -369,6 +371,38 @@ export default function NavBar({
             )}
           </div>
 
+          {/* Screen share indicator — visible only while actively streaming */}
+          {isStreaming && (
+            <div
+              aria-label="Näyttöä lähetetään omaiselle"
+              title="Näyttöä lähetetään omaiselle"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                animation: 'pulse 2s ease-in-out infinite',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 40,
+                  height: 40,
+                  borderRadius: 8,
+                  background: 'rgba(255, 80, 80, 0.2)',
+                  color: '#FF5050',
+                }}
+              >
+                <span aria-hidden="true" style={{ fontSize: 20, lineHeight: 1 }}>📡</span>
+              </div>
+              {tutorMode && (
+                <span className="tutor-hint" style={{ color: '#FF8080' }}>Lähetys</span>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Tutor speech bubble warning */}
@@ -400,6 +434,10 @@ export default function NavBar({
           @keyframes slide {
             0% { transform: translateX(-100%); }
             100% { transform: translateX(400%); }
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
           }
         `}</style>
       </div>

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, WebContentsView, shell, nativeTheme, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, WebContentsView, shell, nativeTheme, Menu, desktopCapturer } from 'electron'
 import path from 'path'
 import { getSettings, saveSettings, type Settings } from './settings-store'
 import { registerDevice, startSync, stopSync, getPairCode, setSettingsChangedCallback, setMessageReceivedCallback, reportUrl, deleteMessage } from './device-sync'
@@ -108,6 +108,15 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
   }
+
+  // Allow renderer to request screen-capture permissions (for getUserMedia + desktopCapturer)
+  mainWindow.webContents.session.setPermissionRequestHandler((_wc, permission, callback) => {
+    if (permission === 'media' || permission === 'display-capture') {
+      callback(true)
+    } else {
+      callback(false)
+    }
+  })
 
   mainWindow.on('resize', () => {
     const s = getSettings()
@@ -283,6 +292,20 @@ ipcMain.handle('device:clearMessage', async (): Promise<void> => {
     await deleteMessage(s.pairCode)
   }
 })
+
+ipcMain.handle('screenshare:getSourceId', async (): Promise<string | null> => {
+  try {
+    const sources = await desktopCapturer.getSources({ types: ['screen'] })
+    return sources[0]?.id ?? null
+  } catch (err) {
+    console.warn('[screenshare] getSources failed:', err)
+    return null
+  }
+})
+
+export function sendScreenShareStatus(active: boolean): void {
+  mainWindow?.webContents.send('screenshare:status', active)
+}
 
 app.whenReady().then(async () => {
   buildMinimalMenu()
