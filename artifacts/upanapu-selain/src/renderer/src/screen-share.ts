@@ -23,7 +23,7 @@ function toWsUrl(apiBaseUrl: string): string {
         `Insecure WebSocket (ws://) is not permitted for non-local hosts. Use an https:// API URL instead.`
       )
     }
-    return `ws://${url.host}${url.pathname.replace(/\/$/, '')}/ws`
+    return `ws://${url.host}${url.pathname.replace(/\/$/, '')}/ws` // nosec: ws:// is safe here — branch is only reachable for localhost/127.0.0.1/[::1]
   }
   throw new Error(`Unsupported API URL protocol: ${url.protocol}`)
 }
