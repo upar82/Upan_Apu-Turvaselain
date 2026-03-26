@@ -312,12 +312,11 @@ ipcMain.handle('screenshare:getSourceId', async (): Promise<string | null> => {
 app.whenReady().then(async () => {
   buildMinimalMenu()
 
-  // If no pairCode exists (fresh install, device expired, or data cleared),
-  // reset firstRun so the welcome screen (including the payment question) is shown.
-  // Without this, firstRun: false persists across reinstalls/device-expiry cycles.
-  if (!getSettings().pairCode) {
-    saveSettings({ firstRun: true })
-  }
+  // Always reset firstRun: true before creating the window so the payment
+  // question (WelcomeScreen step 1) is shown on every launch.
+  // firstRun: false is only kept for the current session — it is never
+  // carried over to the next startup.
+  saveSettings({ firstRun: true })
 
   createWindow()
 
