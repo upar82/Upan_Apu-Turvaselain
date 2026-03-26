@@ -5,6 +5,7 @@ import logoUrl from '../assets/upanapu-logo.png'
 interface WelcomeScreenProps {
   settings: Settings
   pairCode: string | null
+  isNewDevice: boolean
   onDone: (blockPayments: boolean) => void
   registerError: boolean
   retrying: boolean
@@ -19,7 +20,7 @@ function formatPairCode(code: string): string {
   return code
 }
 
-export default function WelcomeScreen({ settings, pairCode, onDone, registerError, retrying, onRetry }: WelcomeScreenProps) {
+export default function WelcomeScreen({ settings, pairCode, isNewDevice, onDone, registerError, retrying, onRetry }: WelcomeScreenProps) {
   const [step, setStep] = useState<'choice' | 'code'>('choice')
   const [chosen, setChosen] = useState<boolean | null>(null)
   const [chosenBlock, setChosenBlock] = useState<boolean>(false)
@@ -32,10 +33,10 @@ export default function WelcomeScreen({ settings, pairCode, onDone, registerErro
     setChosenBlock(block)
     setSaving(true)
 
-    if (pairCode) {
-      // Registered device — save choice and dismiss welcome screen immediately.
-      // The pair code was already shared on first registration; no need to show
-      // step 2 again.  Set firstRun: false so App unmounts WelcomeScreen.
+    if (pairCode && !isNewDevice) {
+      // Returning device — pairCode was already in store at startup, meaning
+      // the user saw their code in a previous session.  Skip step 2 and go
+      // straight to the browser.  Set firstRun: false so App unmounts WelcomeScreen.
       const newSettings: Settings = { ...settings, blockPayments: block, firstRun: false }
       await window.electronAPI?.updateSettings(newSettings)
       setSaving(false)
