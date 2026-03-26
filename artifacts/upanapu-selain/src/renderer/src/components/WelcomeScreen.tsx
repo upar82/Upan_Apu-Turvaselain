@@ -48,9 +48,13 @@ export default function WelcomeScreen({ settings, pairCode, onDone }: WelcomeScr
 
   async function handleCopy() {
     if (!pairCode) return
-    await navigator.clipboard.writeText(formatPairCode(pairCode))
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2500)
+    try {
+      await navigator.clipboard.writeText(formatPairCode(pairCode))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    } catch {
+      // Clipboard unavailable — user can still read and type the code manually
+    }
   }
 
   return (
