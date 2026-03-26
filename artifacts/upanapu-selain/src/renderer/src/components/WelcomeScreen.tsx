@@ -36,6 +36,7 @@ export default function WelcomeScreen({ settings, pairCode, onDone }: WelcomeScr
   }
 
   async function handleValmis() {
+    if (!pairCode) return
     // Now persist firstRun: false and dismiss the welcome screen
     const finalSettings: Settings = {
       ...settings,
@@ -338,28 +339,29 @@ export default function WelcomeScreen({ settings, pairCode, onDone }: WelcomeScr
 
             <button
               onClick={handleValmis}
+              disabled={!pairCode}
               style={{
                 width: '100%',
                 maxWidth: 340,
                 padding: '20px',
                 borderRadius: 16,
-                border: '3px solid #0866FF',
-                background: '#0866FF',
-                color: '#FFFFFF',
+                border: pairCode ? '3px solid #0866FF' : '3px solid rgba(255,255,255,0.15)',
+                background: pairCode ? '#0866FF' : 'rgba(255,255,255,0.08)',
+                color: pairCode ? '#FFFFFF' : 'rgba(255,255,255,0.35)',
                 fontSize: 20,
                 fontWeight: 800,
-                cursor: 'pointer',
+                cursor: pairCode ? 'pointer' : 'not-allowed',
                 fontFamily: 'inherit',
                 transition: 'background 0.15s',
               }}
               onMouseEnter={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = '#0755D4'
+                if (pairCode) (e.currentTarget as HTMLButtonElement).style.background = '#0755D4'
               }}
               onMouseLeave={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = '#0866FF'
+                if (pairCode) (e.currentTarget as HTMLButtonElement).style.background = '#0866FF'
               }}
             >
-              Valmis — aloita selaus
+              {pairCode ? 'Valmis — aloita selaus' : 'Ladataan koodia…'}
             </button>
 
             <p style={{ color: '#6A8A9A', fontSize: 14, marginTop: 20 }}>
