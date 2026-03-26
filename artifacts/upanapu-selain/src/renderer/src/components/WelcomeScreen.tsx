@@ -32,23 +32,13 @@ export default function WelcomeScreen({ settings, pairCode, onDone, registerErro
     setChosenBlock(block)
     setSaving(true)
 
-    if (pairCode && settings.pairCodeShown) {
-      // Returning device — user has previously acknowledged the pair code
-      // (clicked "Valmis").  Skip step 2 and go straight to the browser.
-      // Set firstRun: false so App unmounts WelcomeScreen.
-      const newSettings: Settings = { ...settings, blockPayments: block, firstRun: false }
-      await window.electronAPI?.updateSettings(newSettings)
-      setSaving(false)
-      onDone(block)
-    } else {
-      // New device — keep firstRun: true so WelcomeScreen stays mounted while
-      // the user advances to step 2 (pair-code display).  firstRun is set to
-      // false only when the user presses the "Valmis" button (handleValmis).
-      const newSettings: Settings = { ...settings, blockPayments: block, firstRun: true }
-      await window.electronAPI?.updateSettings(newSettings)
-      setSaving(false)
-      setStep('code')
-    }
+    // Always show the pair code step (step 2) on every startup so the user
+    // can always see and share their code if they need to reconnect the portal.
+    // firstRun: true keeps WelcomeScreen mounted until user presses "Valmis".
+    const newSettings: Settings = { ...settings, blockPayments: block, firstRun: true }
+    await window.electronAPI?.updateSettings(newSettings)
+    setSaving(false)
+    setStep('code')
   }
 
   async function handleValmis() {
