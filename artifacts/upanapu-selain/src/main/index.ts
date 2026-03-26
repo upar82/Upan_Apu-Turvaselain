@@ -109,9 +109,14 @@ function createWindow(): void {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
   }
 
-  // Allow renderer to request screen-capture permissions (for getUserMedia + desktopCapturer)
-  mainWindow.webContents.session.setPermissionRequestHandler((_wc, permission, callback) => {
-    if (permission === 'media' || permission === 'display-capture') {
+  // Grant screen-capture permissions ONLY to the trusted main renderer (toolbar UI),
+  // never to external web content loaded in browserView.
+  const trustedWebContentsId = mainWindow.webContents.id
+  mainWindow.webContents.session.setPermissionRequestHandler((wc, permission, callback) => {
+    if (
+      (permission === 'media' || permission === 'display-capture') &&
+      wc.id === trustedWebContentsId
+    ) {
       callback(true)
     } else {
       callback(false)
@@ -303,9 +308,6 @@ ipcMain.handle('screenshare:getSourceId', async (): Promise<string | null> => {
   }
 })
 
-export function sendScreenShareStatus(active: boolean): void {
-  mainWindow?.webContents.send('screenshare:status', active)
-}
 
 app.whenReady().then(async () => {
   buildMinimalMenu()

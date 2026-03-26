@@ -64,10 +64,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   getScreenSourceId: (): Promise<string | null> =>
     ipcRenderer.invoke('screenshare:getSourceId'),
-
-  onScreenShareStatus: (callback: (active: boolean) => void) => {
-    const listener = (_: Electron.IpcRendererEvent, active: boolean) => callback(active)
-    ipcRenderer.on('screenshare:status', listener)
-    return () => ipcRenderer.removeListener('screenshare:status', listener)
-  },
 })

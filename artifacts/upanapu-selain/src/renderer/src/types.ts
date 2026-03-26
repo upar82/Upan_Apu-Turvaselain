@@ -34,7 +34,6 @@ export interface ElectronAPI {
   onMessage?: (callback: (message: string) => void) => () => void
   clearMessage?: () => Promise<void>
   getScreenSourceId?: () => Promise<string | null>
-  onScreenShareStatus?: (callback: (active: boolean) => void) => () => void
 }
 
 declare global {

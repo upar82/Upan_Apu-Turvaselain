@@ -4,8 +4,7 @@ import WelcomeScreen from './components/WelcomeScreen'
 import { ScreenShare, type ScreenShareStatus } from './screen-share'
 import type { Settings } from './types'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const API_BASE_URL: string = (import.meta as any).env?.['VITE_API_URL'] ?? 'https://upanapu-api.replit.app'
+const API_BASE_URL: string = import.meta.env.VITE_API_URL ?? 'https://upanapu-api.replit.app'
 
 const DEFAULT_SETTINGS: Settings = {
   homeUrl: 'https://www.google.fi',
