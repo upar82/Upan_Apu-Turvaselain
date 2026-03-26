@@ -2,7 +2,11 @@ import { getSettings, saveSettings } from './settings-store'
 import type { Settings } from './settings-store'
 
 const API_BASE = process.env['VITE_API_URL'] || 'https://upanapu.replit.app'
-const POLL_INTERVAL_MS = 30_000
+
+// Poll every 5 seconds so OTP pairing requests appear within ~5 seconds
+// of the caregiver sending them.  The API rate limit is 500 req / 15 min
+// (≈33 req/min), and 5-second polling produces 12 req/min — well within limits.
+const POLL_INTERVAL_MS = 5_000
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let onSettingsChanged: ((settings: Settings) => void) | null = null
