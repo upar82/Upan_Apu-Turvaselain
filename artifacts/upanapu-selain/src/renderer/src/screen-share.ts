@@ -9,10 +9,23 @@ export interface ScreenShareOptions {
 }
 
 function toWsUrl(apiBaseUrl: string): string {
-  return apiBaseUrl
-    .replace(/^https:\/\//, 'wss://')
-    .replace(/^http:\/\//, 'ws://')
-    .replace(/\/$/, '') + '/ws'
+  const url = new URL(apiBaseUrl)
+  if (url.protocol === 'https:') {
+    return `wss://${url.host}${url.pathname.replace(/\/$/, '')}/ws`
+  }
+  if (url.protocol === 'http:') {
+    const isLocal =
+      url.hostname === 'localhost' ||
+      url.hostname === '127.0.0.1' ||
+      url.hostname === '[::1]'
+    if (!isLocal) {
+      throw new Error(
+        `Insecure WebSocket (ws://) is not permitted for non-local hosts. Use an https:// API URL instead.`
+      )
+    }
+    return `ws://${url.host}${url.pathname.replace(/\/$/, '')}/ws`
+  }
+  throw new Error(`Unsupported API URL protocol: ${url.protocol}`)
 }
 
 export class ScreenShare {
