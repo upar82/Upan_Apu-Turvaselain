@@ -28,20 +28,22 @@ export default function WelcomeScreen({ settings, pairCode, onDone }: WelcomeScr
     setChosen(block)
     setChosenBlock(block)
     setSaving(true)
-    const newSettings: Settings = {
-      ...settings,
-      blockPayments: block,
-      firstRun: false,
-    }
-    await window.electronAPI?.updateSettings(newSettings)
-    setSaving(false)
 
     if (pairCode) {
-      // Device already registered — skip the pair-code display step and go
-      // straight to browsing.  The pair code was already shared on first run.
+      // Registered device — save choice and dismiss welcome screen immediately.
+      // The pair code was already shared on first registration; no need to show
+      // step 2 again.  Set firstRun: false so App unmounts WelcomeScreen.
+      const newSettings: Settings = { ...settings, blockPayments: block, firstRun: false }
+      await window.electronAPI?.updateSettings(newSettings)
+      setSaving(false)
       onDone(block)
     } else {
-      // New device — advance to step 2 so the user can share their pair code.
+      // New device — keep firstRun: true so WelcomeScreen stays mounted while
+      // the user advances to step 2 (pair-code display).  firstRun is set to
+      // false only when the user presses the "Valmis" button (handleValmis).
+      const newSettings: Settings = { ...settings, blockPayments: block, firstRun: true }
+      await window.electronAPI?.updateSettings(newSettings)
+      setSaving(false)
       setStep('code')
     }
   }
