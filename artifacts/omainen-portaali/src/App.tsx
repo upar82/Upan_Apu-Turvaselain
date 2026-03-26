@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { ScreenView } from "./ScreenView";
 
 interface DeviceSettings {
   homeUrl: string;
@@ -73,6 +74,7 @@ export default function App() {
   const [messageText, setMessageText] = useState("");
   const [messageSending, setMessageSending] = useState(false);
   const [messageSent, setMessageSent] = useState(false);
+  const [showScreenView, setShowScreenView] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const msgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -225,6 +227,7 @@ export default function App() {
     setSaveSuccess(false);
     setMessageText("");
     setMessageSent(false);
+    setShowScreenView(false);
   }
 
   function handleCodeInput(value: string) {
@@ -442,6 +445,50 @@ export default function App() {
                   Päivittyy automaattisesti 30 sekunnin välein
                 </p>
               </div>
+            </div>
+
+            {/* Screen share card */}
+            <div style={{
+              background: "rgba(255,255,255,0.05)",
+              border: "1.5px solid rgba(255,255,255,0.1)",
+              borderRadius: 16,
+              marginBottom: 16,
+              overflow: "hidden",
+            }}>
+              {!showScreenView ? (
+                <div style={{ padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "#FFFFFF", marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+                      <span>📺</span> Näyttökatselu
+                    </div>
+                    <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.5, margin: 0 }}>
+                      Katso läheisesi ruutua reaaliajassa suorana videolähetyksenä.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowScreenView(true)}
+                    style={{
+                      flexShrink: 0,
+                      padding: "10px 18px",
+                      background: "#0866FF",
+                      border: "none",
+                      borderRadius: 10,
+                      color: "#FFFFFF",
+                      fontSize: 14,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Katso näyttöä
+                  </button>
+                </div>
+              ) : (
+                <ScreenView
+                  pairCode={rawCode}
+                  onClose={() => setShowScreenView(false)}
+                />
+              )}
             </div>
 
             {/* Message card */}
