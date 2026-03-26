@@ -24,14 +24,26 @@ export default function WelcomeScreen({ settings, pairCode, onDone }: WelcomeScr
     setChosen(block)
     setChosenBlock(block)
     setSaving(true)
+    // Save blockPayments but keep firstRun: true so WelcomeScreen stays mounted
     const newSettings: Settings = {
       ...settings,
       blockPayments: block,
-      firstRun: false
+      firstRun: true
     }
     await window.electronAPI?.updateSettings(newSettings)
     setSaving(false)
     setStep('code')
+  }
+
+  async function handleValmis() {
+    // Now persist firstRun: false and dismiss the welcome screen
+    const finalSettings: Settings = {
+      ...settings,
+      blockPayments: chosenBlock,
+      firstRun: false
+    }
+    await window.electronAPI?.updateSettings(finalSettings)
+    onDone(chosenBlock)
   }
 
   async function handleCopy() {
@@ -321,7 +333,7 @@ export default function WelcomeScreen({ settings, pairCode, onDone }: WelcomeScr
             </div>
 
             <button
-              onClick={() => onDone(chosenBlock)}
+              onClick={handleValmis}
               style={{
                 width: '100%',
                 maxWidth: 340,

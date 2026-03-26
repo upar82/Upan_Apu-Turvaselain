@@ -39,10 +39,18 @@ function formatLastSeen(isoDate: string): string {
 }
 
 function formatCode(raw: string): string {
-  const chars = raw.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 12);
-  if (chars.length <= 4) return chars;
-  if (chars.length <= 8) return `${chars.slice(0, 4)}-${chars.slice(4)}`;
-  return `${chars.slice(0, 4)}-${chars.slice(4, 8)}-${chars.slice(8)}`;
+  const chars = raw.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  // Legacy 6-digit codes: format as XX-XX-XX
+  if (chars.length <= 6 && /^\d+$/.test(chars)) {
+    if (chars.length <= 2) return chars;
+    if (chars.length <= 4) return `${chars.slice(0, 2)}-${chars.slice(2)}`;
+    return `${chars.slice(0, 2)}-${chars.slice(2, 4)}-${chars.slice(4)}`;
+  }
+  // New 12-char alphanumeric codes: format as XXXX-XXXX-XXXX
+  const c = chars.slice(0, 12);
+  if (c.length <= 4) return c;
+  if (c.length <= 8) return `${c.slice(0, 4)}-${c.slice(4)}`;
+  return `${c.slice(0, 4)}-${c.slice(4, 8)}-${c.slice(8)}`;
 }
 
 function shortenUrl(url: string): string {
@@ -94,7 +102,7 @@ export default function App() {
     }
     refreshTimerRef.current = setInterval(() => {
       const code = sessionStorage.getItem("upanapu_code") ?? "";
-      if (code.length === 12) refreshActivity(code);
+      if (code.length === 12 || code.length === 6) refreshActivity(code);
     }, 30_000);
     return () => {
       if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
@@ -114,8 +122,8 @@ export default function App() {
 
   async function handleConnect(code?: string) {
     const digits = (code ?? rawCode).replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-    if (digits.length !== 12) {
-      setError("Syötä 12-merkkinen laitekoodi (muotoa XXXX-XXXX-XXXX).");
+    if (digits.length !== 12 && digits.length !== 6) {
+      setError("Syötä laitekoodi (uusi muoto XXXX-XXXX-XXXX tai vanha 6-numeroinen koodi).");
       return;
     }
 
@@ -306,18 +314,18 @@ export default function App() {
 
             <button
               onClick={() => handleConnect()}
-              disabled={loading || rawCode.length !== 12}
+              disabled={loading || (rawCode.length !== 12 && rawCode.length !== 6)}
               style={{
                 width: "100%",
                 padding: "16px",
                 marginTop: 8,
-                background: rawCode.length === 12 && !loading ? "#0866FF" : "rgba(255,255,255,0.1)",
+                background: (rawCode.length === 12 || rawCode.length === 6) && !loading ? "#0866FF" : "rgba(255,255,255,0.1)",
                 border: "none",
                 borderRadius: 12,
-                color: rawCode.length === 12 && !loading ? "#FFFFFF" : "rgba(255,255,255,0.35)",
+                color: (rawCode.length === 12 || rawCode.length === 6) && !loading ? "#FFFFFF" : "rgba(255,255,255,0.35)",
                 fontSize: 16,
                 fontWeight: 700,
-                cursor: rawCode.length === 12 && !loading ? "pointer" : "not-allowed",
+                cursor: (rawCode.length === 12 || rawCode.length === 6) && !loading ? "pointer" : "not-allowed",
                 transition: "background 0.2s",
               }}
             >
