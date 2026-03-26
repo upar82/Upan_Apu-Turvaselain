@@ -14,7 +14,8 @@ const DEFAULT_SETTINGS: Settings = {
   blockPayments: false,
   deviceId: null,
   pairCode: null,
-  syncEnabled: false
+  syncEnabled: false,
+  pairCodeShown: false
 }
 
 export default function App() {
@@ -26,7 +27,6 @@ export default function App() {
   const [warning, setWarning] = useState<string | null>(null)
   const [portalMessage, setPortalMessage] = useState<string | null>(null)
   const [pairCode, setPairCode] = useState<string | null>(null)
-  const [isNewDevice, setIsNewDevice] = useState(false)
   const [screenShareStatus, setScreenShareStatus] = useState<ScreenShareStatus>('idle')
   const [otpRequest, setOtpRequest] = useState<{ otp: string; expiresAt: Date } | null>(null)
   const [otpTimeLeft, setOtpTimeLeft] = useState(0)
@@ -42,14 +42,7 @@ export default function App() {
 
     window.electronAPI.getSettings().then(s => {
       setSettings(s)
-      if (s.pairCode) {
-        setPairCode(s.pairCode)
-        // pairCode already in store → returning device, code was seen before
-        setIsNewDevice(false)
-      } else {
-        // No pairCode in store → new device, must show code after registration
-        setIsNewDevice(true)
-      }
+      if (s.pairCode) setPairCode(s.pairCode)
     })
 
     window.electronAPI.getDeviceStatus().then(status => {
@@ -205,7 +198,6 @@ export default function App() {
         <WelcomeScreen
           settings={settings}
           pairCode={pairCode}
-          isNewDevice={isNewDevice}
           onDone={handleWelcomeDone}
           registerError={registerError}
           retrying={retrying}

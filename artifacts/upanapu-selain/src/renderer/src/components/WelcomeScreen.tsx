@@ -5,7 +5,6 @@ import logoUrl from '../assets/upanapu-logo.png'
 interface WelcomeScreenProps {
   settings: Settings
   pairCode: string | null
-  isNewDevice: boolean
   onDone: (blockPayments: boolean) => void
   registerError: boolean
   retrying: boolean
@@ -20,7 +19,7 @@ function formatPairCode(code: string): string {
   return code
 }
 
-export default function WelcomeScreen({ settings, pairCode, isNewDevice, onDone, registerError, retrying, onRetry }: WelcomeScreenProps) {
+export default function WelcomeScreen({ settings, pairCode, onDone, registerError, retrying, onRetry }: WelcomeScreenProps) {
   const [step, setStep] = useState<'choice' | 'code'>('choice')
   const [chosen, setChosen] = useState<boolean | null>(null)
   const [chosenBlock, setChosenBlock] = useState<boolean>(false)
@@ -33,10 +32,10 @@ export default function WelcomeScreen({ settings, pairCode, isNewDevice, onDone,
     setChosenBlock(block)
     setSaving(true)
 
-    if (pairCode && !isNewDevice) {
-      // Returning device — pairCode was already in store at startup, meaning
-      // the user saw their code in a previous session.  Skip step 2 and go
-      // straight to the browser.  Set firstRun: false so App unmounts WelcomeScreen.
+    if (pairCode && settings.pairCodeShown) {
+      // Returning device — user has previously acknowledged the pair code
+      // (clicked "Valmis").  Skip step 2 and go straight to the browser.
+      // Set firstRun: false so App unmounts WelcomeScreen.
       const newSettings: Settings = { ...settings, blockPayments: block, firstRun: false }
       await window.electronAPI?.updateSettings(newSettings)
       setSaving(false)
@@ -54,11 +53,13 @@ export default function WelcomeScreen({ settings, pairCode, isNewDevice, onDone,
 
   async function handleValmis() {
     if (!pairCode) return
-    // Now persist firstRun: false and dismiss the welcome screen
+    // Persist firstRun: false and pairCodeShown: true so future startups
+    // know the user has already seen and acknowledged their pair code.
     const finalSettings: Settings = {
       ...settings,
       blockPayments: chosenBlock,
-      firstRun: false
+      firstRun: false,
+      pairCodeShown: true
     }
     await window.electronAPI?.updateSettings(finalSettings)
     onDone(chosenBlock)

@@ -7,6 +7,7 @@ export interface Settings {
   deviceId: string | null
   pairCode: string | null
   syncEnabled: boolean
+  pairCodeShown: boolean
 }
 
 export interface DeviceStatus {
