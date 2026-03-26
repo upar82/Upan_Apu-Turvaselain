@@ -5,7 +5,7 @@ function buildWsUrl(): string {
   if (apiUrl) {
     return apiUrl
       .replace(/^https:\/\//, "wss://")
-      .replace(/^http:\/\//, "ws://")
+      .replace(/^http:\/\//, "ws://") // intentional: dev-only fallback when API is on plain HTTP
       .replace(/\/$/, "") + "/ws";
   }
   // Dev fallback: same hostname as the portal, API port from env or default 8080
