@@ -123,7 +123,7 @@ export default function App() {
   async function handleConnect(code?: string) {
     const raw = (code ?? rawCode).replace(/[^A-Za-z0-9]/g, "").toUpperCase();
     const isLegacy = raw.length === 6 && /^\d{6}$/.test(raw);
-    const isNew = raw.length === 12;
+    const isNew = raw.length === 12 && /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{12}$/.test(raw);
     const digits = raw;
     if (!isLegacy && !isNew) {
       setError("Syötä laitekoodi (uusi muoto XXXX-XXXX-XXXX tai vanha 6-numeroinen koodi).");
