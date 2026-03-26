@@ -69,6 +69,16 @@ function checkUrlForWarning(url: string, settings: Settings): string | null {
   }
 }
 
+function applyFontSize(fontSize: Settings['fontSize']): void {
+  if (!browserView) return
+  const factors: Record<Settings['fontSize'], number> = {
+    normal: 1.0,
+    large: 1.25,
+    xlarge: 1.5,
+  }
+  browserView.webContents.setZoomFactor(factors[fontSize] ?? 1.0)
+}
+
 function createWindow(): void {
   const settings = getSettings()
 
@@ -97,6 +107,7 @@ function createWindow(): void {
 
   mainWindow.contentView.addChildView(browserView)
   updateBrowserViewBounds(settings.firstRun)
+  applyFontSize(settings.fontSize)
 
   if (!settings.firstRun) {
     browserView.webContents.loadURL(settings.homeUrl)
@@ -348,6 +359,7 @@ app.whenReady().then(async () => {
 
   setSettingsChangedCallback((newSettings: Settings) => {
     mainWindow?.webContents.send('settings:updated', newSettings)
+    applyFontSize(newSettings.fontSize)
     const current = browserView?.webContents.getURL()
     const home = newSettings.homeUrl
     if (current && current !== home && !current.startsWith('about:')) {
