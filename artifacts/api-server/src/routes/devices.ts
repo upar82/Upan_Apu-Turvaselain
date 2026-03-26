@@ -35,12 +35,19 @@ function generateDeviceId(): string {
 }
 
 const PAIR_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const ALPHABET_LEN = PAIR_CODE_ALPHABET.length; // 32 — power of two, no bias
 
 function generatePairCode(): string {
-  const bytes = randomBytes(12);
   let code = "";
-  for (let i = 0; i < 12; i++) {
-    code += PAIR_CODE_ALPHABET[bytes[i] % PAIR_CODE_ALPHABET.length];
+  while (code.length < 12) {
+    const batch = randomBytes(32);
+    for (const byte of batch) {
+      // Reject bytes >= 224 (7*32) so every kept byte maps uniformly to 0..31
+      if (byte < 224) {
+        code += PAIR_CODE_ALPHABET[byte % ALPHABET_LEN];
+        if (code.length === 12) break;
+      }
+    }
   }
   return code;
 }
